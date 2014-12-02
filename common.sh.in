@@ -422,12 +422,12 @@ filesystem_check() {
     get_os $target
 
     case "${OPERATING_SYSTEM}" in
-       fedora|centos|redhat)
-        # we have to force a filesystem relabeling for SELinux after messing
-        # around with the filesystem in fedora
-        echo "Enforce an automatic relabeling in the initial boot process..."
-        touch $target/.autorelabel
-       ;;
+        fedora|centos|redhat)
+            # we have to force a filesystem relabeling for SELinux after messing
+            # around with the filesystem in fedora
+            echo "Enforce an automatic relabeling in the initial boot process..."
+            touch $target/.autorelabel
+            ;;
     esac
 }
 
