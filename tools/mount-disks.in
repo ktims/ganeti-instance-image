@@ -25,7 +25,7 @@ root_dev=$(map_partition $filesystem_dev root)
 boot_dev=$(map_partition $filesystem_dev boot)
 
 target="/tmp/${INSTANCE_NAME}_root"
-mkdir -p $target
+${MKDIR_P} $target
 
 # mount filesystems
 mount_disk0 $target
