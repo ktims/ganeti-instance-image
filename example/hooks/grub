@@ -28,10 +28,6 @@ set -e
 
 debug set -x
 
-CLEANUP=( )
-
-trap cleanup EXIT
-
 if [ -z "${TARGET}" -o ! -d "${TARGET}" ] ; then
     log_error "Missing target directory"
     exit 1

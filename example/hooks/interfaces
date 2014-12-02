@@ -212,5 +212,6 @@ else
     log_error "Unsupported OS_TYPE"
 fi
 
-
+cleanup
+trap - EXIT
 exit 0
