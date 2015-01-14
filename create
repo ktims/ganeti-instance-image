@@ -34,11 +34,11 @@ fi
 if [ ! -z "$IMAGE_URL" ] ; then
     cd ${CACHE_DIR}
     if [ ! -e ${CACHE_DIR}/${IMAGE_NAME}-${ARCH}${IMG_EXT} ]; then
-        $CURL -O "${IMAGE_URL}/${IMAGE_NAME}-${ARCH}${IMG_EXT}" 2>/dev/null\
+        $WGET "${IMAGE_URL}/${IMAGE_NAME}-${ARCH}${IMG_EXT}" >/dev/null 2>/dev/null\
         || (log_error "Failed to find the image on ${IMAGE_URL}"; exit 1)
     fi
     if [ "$IMG_VERIFY" = "yes" ]; then
-        $CURL -O "${IMAGE_URL}/${IMAGE_NAME}-${ARCH}${IMG_EXT}.sig" 2>/dev/null\
+        $WGET "${IMAGE_URL}/${IMAGE_NAME}-${ARCH}${IMG_EXT}.sig" >/dev/null 2>/dev/null\
         || (log_error "Failed to find the checksum file"; exit 1)
         $SHA1SUM -c "${IMAGE_NAME}-${ARCH}${IMG_EXT}.sig" >/dev/null \
         || (log_error "Image doesn't match checksum!"; exit 1)

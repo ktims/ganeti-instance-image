@@ -38,7 +38,7 @@ edit = sed \
 	   -e 's|@SFDISK[@]|$(SFDISK)|g' \
 	   -e 's|@PARTED[@]|$(PARTED)|g' \
 	   -e 's|@QEMU_IMG[@]|$(QEMU_IMG)|g' \
-	   -e 's|@CURL[@]|$(CURL)|g' \
+	   -e 's|@WGET[@]|$(WGET)|g' \
 	   -e 's|@SHA1SUM[@]|$(SHA1SUM)|g' \
 	   -e 's|@BLOCKDEV_CMD[@]|$(BLOCKDEV_CMD)|g' \
 	   -e 's|@BLKID[@]|$(BLKID)|g'

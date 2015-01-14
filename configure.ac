@@ -71,9 +71,9 @@ if test -z "$QEMU_IMG" ; then
   AC_MSG_ERROR([qemu-img not found in $PATH])
 fi
 
-AC_PATH_PROG(CURL, [curl], [], [$PATH:/usr/bin:/bin])
-if test -z "$CURL" ; then
-  AC_MSG_ERROR([curl not found in $PATH])
+AC_PATH_PROG(WGET, [wget], [], [$PATH:/usr/bin:/bin])
+if test -z "$WGET" ; then
+  AC_MSG_ERROR([wget not found in $PATH])
 fi
 
 AC_PATH_PROG(SHA1SUM, [sha1sum], [], [$PATH:/usr/bin:/bin])
