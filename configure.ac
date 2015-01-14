@@ -32,6 +32,9 @@ AC_PROG_LN_S
 AC_PROG_AWK
 AC_PROG_MKDIR_P
 
+# These are all actually runtime deps, but all need to be
+# "build-deps" in order to inject their paths into the scripts
+
 AC_PATH_PROG(DMSETUP, [dmsetup], [], [$PATH:/usr/sbin:/sbin])
 if test -z "$DMSETUP" ; then
   AC_MSG_ERROR([dmsetup not found in $PATH])
