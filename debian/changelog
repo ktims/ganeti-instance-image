@@ -1,3 +1,33 @@
+ganeti-instance-image (0.6-2) UNRELEASED; urgency=high
+
+  [ Alexandros Kiousis ]
+  * Extend gnt-os API to v20 - add support for osparams
+  * Another osparam (img_ssh_key_url) and a hook to use it
+  * Add a SELINUX relabel function for RHEL-like oses
+  * A hook that randomizes the system crontab
+  * Add support for remote image fetching.
+
+  [ Rowan Thorpe ]
+  * common.sh.in:Alter format of two var-assignments
+  * Fix mount-disks & umount-disks for instances with multiple disks
+  * Configure serial getty in securetty if present
+  * Only check swap-size if swap=yes
+  * Fixes for systemd-based systems (eg. centos7)
+  * Various self-evident small fixes/improvements
+  * Add pre-mount hook-handling&partition resize hook
+  * Change IMG_FORMAT= to IMAGE_TYPE= (g.i.i uses the latter)
+  * Several cleanup-handling fixes
+  * Add missing $ in two variable tests
+  * Use $MKDIR_P instead of hardcoded mkdir -p in two files
+  * Small formatting alignment-fix
+  * Include dmsetup in autoconf flow
+  * Use wget instead of curl (build-essential dep)
+  * Fix autoconf search-path for qemu-img
+  * Fix deb-deps/build-deps,comment in autoconf.ac
+  * Fix tiny packaging typo
+
+ -- Rowan Thorpe <rowan@rowanthorpe.com>  Wed, 14 Jan 2015 17:02:07 +0200
+
 ganeti-instance-image (0.6-1) unstable; urgency=high
   * Version bump, bug fixes and new features
 
