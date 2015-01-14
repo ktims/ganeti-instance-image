@@ -32,6 +32,11 @@ AC_PROG_LN_S
 AC_PROG_AWK
 AC_PROG_MKDIR_P
 
+AC_PATH_PROG(DMSETUP, [dmsetup], [], [$PATH:/usr/sbin:/sbin])
+if test -z "$DMSETUP" ; then
+  AC_MSG_ERROR([dmsetup not found in $PATH])
+fi
+
 AC_PATH_PROG(DUMP, [dump], [], [$PATH:/usr/sbin:/sbin])
 if test -z "$DUMP" ; then
   AC_MSG_ERROR([dump not found in $PATH])

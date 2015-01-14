@@ -103,13 +103,13 @@ if [ "${IMAGE_TYPE}" = 'qemu' ]; then
         # Update awareness of new device size
         new_device_size=`${BLOCKDEV_CMD} --getsz ${BLOCKDEV}`
         new_device_table="$(
-            dmsetup table ${BLOCKDEV} | \
+            ${DMSETUP} table ${BLOCKDEV} | \
                 sed -e 's/^\([^ \t]\+[ \t]\+\)[^ \t]\+\([ \t]\)$/\1'"${new_device_size}"'\2/'
         )"
         trap 'set +e; cleanup' EXIT # not pretty, but the alternative would be too complex
-        dmsetup suspend ${BLOCKDEV}
-        dmsetup reload ${BLOCKDEV} --table "$new_device_table"
-        dmsetup resume ${BLOCKDEV}
+        ${DMSETUP} suspend ${BLOCKDEV}
+        ${DMSETUP} reload ${BLOCKDEV} --table "$new_device_table"
+        ${DMSETUP} resume ${BLOCKDEV}
         trap cleanup EXIT # ..back to normal
 
         filesystem_dev=$(map_disk0 ${BLOCKDEV})
