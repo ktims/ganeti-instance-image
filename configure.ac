@@ -66,7 +66,7 @@ if test -z "$PARTED" ; then
   AC_MSG_WARN([parted not found in $PATH])
 fi
 
-AC_PATH_PROG(QEMU_IMG, [qemu-img], [], [$PATH:/usr/sbin:/sbin])
+AC_PATH_PROG(QEMU_IMG, [qemu-img], [], [$PATH:/usr/bin:/bin])
 if test -z "$QEMU_IMG" ; then
   AC_MSG_ERROR([qemu-img not found in $PATH])
 fi
