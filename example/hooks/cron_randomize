@@ -10,8 +10,6 @@ set -e
 
 debug set -x
 
-trap cleanup EXIT
-
 n=$RANDOM
 min=$(( n %= 30 ))
 
@@ -24,5 +22,6 @@ echo "$((min + 7)) 6 * * *  root    test -x /usr/sbin/anacron || ( cd / && run-p
 echo "$((min + 13)) 6 * * 7 root    test -x /usr/sbin/anacron || ( cd / && run-parts --report cron.weekly )" >> ${TARGET}/etc/crontab
 echo "$((min + 24)) 6 1 * * root    test -x /usr/sbin/anacron || ( cd / && run-parts --report cron.monthly )" >> ${TARGET}/etc/crontab
 
+cleanup
 trap - EXIT
 exit 0

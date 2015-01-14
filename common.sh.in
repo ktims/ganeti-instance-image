@@ -119,7 +119,7 @@ get_api20_parameters() {
     exit 1
   fi
   IMG_ID=$OSP_IMG_ID
-  IMG_FORMAT=$OSP_IMG_FORMAT
+  IMAGE_TYPE=$OSP_IMG_FORMAT
   IMG_SSH_KEY_URL=$OSP_IMG_SSH_KEY_URL
 }
 
@@ -444,12 +444,12 @@ filesystem_check() {
     get_os $target
 
     case "${OPERATING_SYSTEM}" in
-       fedora|centos|redhat)
-        # we have to force a filesystem relabeling for SELinux after messing
-        # around with the filesystem in fedora
-        echo "Enforce an automatic relabeling in the initial boot process..."
-        touch $target/.autorelabel
-       ;;
+        fedora|centos|redhat)
+            # we have to force a filesystem relabeling for SELinux after messing
+            # around with the filesystem in fedora
+            echo "Enforce an automatic relabeling in the initial boot process..."
+            touch $target/.autorelabel
+            ;;
     esac
 }
 
