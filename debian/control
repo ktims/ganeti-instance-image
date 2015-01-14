@@ -16,7 +16,7 @@ Depends: ${misc:Depends}, dmsetup, dump, e2fsprogs, gawk, kpartx, parted,
  qemu (>= 0.11) | qemu-kvm (>= 0.11), wget
 Conflicts: ganeti (<< 2.9.3)
 Enhances: ganeti
-Description: image based instance OS defintion for ganeti
+Description: image based instance OS definition for ganeti
  Ganeti is a virtual server cluster management software tool built on
  top of the Xen virtual machine monitor and other Open Source software.
  After setting it up it will provide you with an automated environment
