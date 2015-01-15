@@ -32,6 +32,7 @@ edit = sed \
 	   -e 's|@defaultdir[@]|$(DEFAULT_DIR)|g' \
 	   -e 's|@AWK[@]|$(AWK)|g' \
 	   -e 's|@MKDIR_P[@]|$(MKDIR_P)|g' \
+	   -e 's|@DMSETUP[@]|$(DMSETUP)|g' \
 	   -e 's|@DUMP[@]|$(DUMP)|g' \
 	   -e 's|@LOSETUP[@]|$(LOSETUP)|g' \
 	   -e 's|@KPARTX[@]|$(KPARTX)|g' \
