@@ -452,7 +452,10 @@ setup_console() {
             fi
             ;;
 	systemd)
-            chroot ${target} systemctl enable serial-getty@ttyS0.service >/dev/null 2>&1
+            if ! test -e '/etc/systemd/system/getty.target.wants/serial-getty@ttyS0.service'; then
+                chroot ${target} systemctl enable serial-getty@ttyS0.service >/dev/null 2>&1 || \
+                    ln -s '/usr/lib/systemd/system/serial-getty@.service' '/etc/systemd/system/getty.target.wants/serial-getty@ttyS0.service'
+            fi
             ;;
 	*)
 	    get_os $target
