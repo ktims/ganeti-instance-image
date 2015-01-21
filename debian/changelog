@@ -30,8 +30,9 @@ ganeti-instance-image (0.6-1+grnet3) UNRELEASED; urgency=high
   * Improve service-manager sniffing for setup_console
   * Improve systemd serial-getty handling
   * Fix service-manager sniffing in common.sh
+  * Finetune service-manager sniff (one less subshell)
 
- -- Rowan Thorpe <rowan@rowanthorpe.com>  Wed, 21 Jan 2015 22:03:36 +0200
+ -- Rowan Thorpe <rowan@rowanthorpe.com>  Wed, 21 Jan 2015 22:15:55 +0200
 
 ganeti-instance-image (0.6-1) unstable; urgency=high
   * Version bump, bug fixes and new features
