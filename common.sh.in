@@ -387,47 +387,23 @@ EOF
 fi
 }
 
-# function virtually copy-pasted (the linux-specific stuff) from
-# https://github.com/CISOfy/Lynis/blob/c7a242a0206db545400ae8af2d6a7fb324598f92/include/tests_boot_services
-# (GPLv3)
-determine_service_manager() {
-    SERVICE_MANAGER='unknown'
-    if [ -f /proc/1/cmdline ]; then
-        FILE=`cat /proc/1/cmdline | grep "^/" | awk '{ print $1 }'`
-        if [ ! "${FILE}" = "" ]; then
-            if [ -L ${FILE} ]; then
-                sFILE="$(readlink -e "${FILE}")"
-                if [ -f ${sFILE} ]; then
-                    SHORTNAME=`echo ${sFILE} | awk -F/ '{ print $NF }'`
-                    case ${SHORTNAME} in
-                        upstart)
-                            SERVICE_MANAGER="upstart"
-                        ;;
-                        systemd)
-                            SERVICE_MANAGER="systemd"
-                        ;;
-                        *)
-                            log_error "Found ${SHORTNAME} but unclear what service manager this is"
-                        ;;
-                    esac
-                else
-                    log_error "Result: Could not find linked file ${sFILE}"
-                fi
-            else
-                FIND=`echo ${FILE} | grep "/systemd"`
-                if [ ! "${FIND}" = "" ]; then
-                    SERVICE_MANAGER="systemd"
-                fi
-            fi
-        else
-            log_error "Result: /proc/1/cmdline does not link to a binary on disk"
-        fi
-    fi
-    # Continue testing if we didn't find it yet
-    if [ "${SERVICE_MANAGER}" = "unknown" ]; then
-        if [ -f /usr/bin/init-openrc ]; then SERVICE_MANAGER="openrc"; fi
-    fi
-    return "$SERVICE_MANAGER"
+# This is ugly, there must be a better way [sigh]
+get_service_manager() {
+    local target=$1
+    service_manager="$(
+        chroot ${target} /sbin/init --version 2>/dev/null | \
+            tr '[A-Z\n]' '[a-z ]' | \
+            sed -e '
+                s/^.*\(\<systemd\>\).*$/systemd/;
+                t;
+                s/^.*\(\<upstart\>\).*$/upstart/;
+                t;
+                s/^.*\(\<openrc\>\).*$/openrc/;
+                t;
+                s/^.*$/sysv/;
+            ' || true
+    )"
+    printf '%s' "${service_manager:-sysv}"
 }
 
 setup_console() {
@@ -436,7 +412,7 @@ setup_console() {
         log_error "target not set for setup_console"
         exit 1
     fi
-    local service_manager=`determine_service_manager`
+    local service_manager=`get_service_manager ${target}`
 
     case "$local_service_manager" in
 	upstart)
