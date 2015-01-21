@@ -1,4 +1,4 @@
-ganeti-instance-image (0.6-2) UNRELEASED; urgency=high
+ganeti-instance-image (0.6-1+grnet3) UNRELEASED; urgency=high
 
   [ Alexandros Kiousis ]
   * Extend gnt-os API to v20 - add support for osparams
@@ -25,8 +25,13 @@ ganeti-instance-image (0.6-2) UNRELEASED; urgency=high
   * Fix autoconf search-path for qemu-img
   * Fix deb-deps/build-deps,comment in autoconf.ac
   * Fix tiny packaging typo
+  * Fix missing make-sed for @DMSETUP@
+  * Relegate some debian-deps to "recommends"
+  * Improve service-manager sniffing for setup_console
+  * Improve systemd serial-getty handling
+  * Fix service-manager sniffing in common.sh
 
- -- Rowan Thorpe <rowan@rowanthorpe.com>  Wed, 14 Jan 2015 17:02:07 +0200
+ -- Rowan Thorpe <rowan@rowanthorpe.com>  Wed, 21 Jan 2015 22:03:36 +0200
 
 ganeti-instance-image (0.6-1) unstable; urgency=high
   * Version bump, bug fixes and new features
