@@ -390,20 +390,17 @@ fi
 # This is ugly, there must be a better way [sigh]
 get_service_manager() {
     local target=$1
-    service_manager="$(
-        chroot ${target} /sbin/init --version 2>/dev/null | \
-            tr '[A-Z\n]' '[a-z ]' | \
-            sed -e '
-                s/^.*\(\<systemd\>\).*$/systemd/;
-                t;
-                s/^.*\(\<upstart\>\).*$/upstart/;
-                t;
-                s/^.*\(\<openrc\>\).*$/openrc/;
-                t;
-                s/^.*$/sysv/;
-            ' || true
-    )"
-    printf '%s' "${service_manager:-sysv}"
+    { chroot ${target} /sbin/init --version 2>/dev/null || true; } | \
+        tr '[A-Z\n]' '[a-z ]' | \
+        sed -e '
+            s/^.*\(\<systemd\>\).*$/systemd/;
+            t;
+            s/^.*\(\<upstart\>\).*$/upstart/;
+            t;
+            s/^.*\(\<openrc\>\).*$/openrc/;
+            t;
+            s/^.*$/sysv/;
+        '
 }
 
 setup_console() {
