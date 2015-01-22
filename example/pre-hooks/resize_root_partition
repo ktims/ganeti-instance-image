@@ -123,6 +123,7 @@ if [ "${IMAGE_TYPE}" = 'qemu' ]; then
         case `${BLKID} -p -u filesystem -s TYPE -o value ${ROOT_DEV}` in
             ext2|ext3|ext4)
                 resize2fs -f ${ROOT_DEV} >/dev/null 2>&1
+                e2fsck -f -n ${ROOT_DEV} >/dev/null 2>&1
                 ;;
         esac
 
