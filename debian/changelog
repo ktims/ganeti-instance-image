@@ -33,8 +33,9 @@ ganeti-instance-image (0.6-1+grnet3) UNRELEASED; urgency=high
   * Finetune service-manager sniff (one less subshell)
   * Add pre-hooks to packaging files,fix resize hook
   * Add timeout to wget,make all invocs use $WGET
+  * Add e2fsck after rootFS resize,just in case
 
- -- Rowan Thorpe <rowan@rowanthorpe.com>  Wed, 22 Jan 2015 18:42:45 +0200
+ -- Rowan Thorpe <rowan@rowanthorpe.com>  Wed, 22 Jan 2015 20:29:13 +0200
 
 ganeti-instance-image (0.6-1) unstable; urgency=high
   * Version bump, bug fixes and new features
