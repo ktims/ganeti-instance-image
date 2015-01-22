@@ -2,6 +2,7 @@ osname=$(subst ganeti-instance-,,$(PACKAGE))
 
 osdir=$(OS_DIR)/$(osname)
 customdir=${sysconfdir}/ganeti/instance-image/hooks
+custom2dir=${sysconfdir}/ganeti/instance-image/pre-hooks
 configdir=${sysconfdir}/ganeti/instance-image
 variantsdir=${sysconfdir}/ganeti/instance-image/variants
 networksdir=${sysconfdir}/ganeti/instance-image/networks
@@ -17,6 +18,7 @@ tools_SCRIPTS = tools/ganeti-image tools/make-image tools/make-dump \
 	tools/make-qemu-img tools/mount-disks tools/umount-disks
 
 dist_custom_DATA = ${srcdir}/example/hooks/*
+dist_custom2_DATA = ${srcdir}/example/pre-hooks/*
 
 dist_doc_DATA = ${srcdir}/COPYING ${srcdir}/NEWS ${srcdir}/README.markdown
 
@@ -32,7 +34,6 @@ edit = sed \
 	   -e 's|@defaultdir[@]|$(DEFAULT_DIR)|g' \
 	   -e 's|@AWK[@]|$(AWK)|g' \
 	   -e 's|@MKDIR_P[@]|$(MKDIR_P)|g' \
-	   -e 's|@DMSETUP[@]|$(DMSETUP)|g' \
 	   -e 's|@DUMP[@]|$(DUMP)|g' \
 	   -e 's|@LOSETUP[@]|$(LOSETUP)|g' \
 	   -e 's|@KPARTX[@]|$(KPARTX)|g' \

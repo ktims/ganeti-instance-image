@@ -57,10 +57,11 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
-%doc COPYING README.markdown NEWS example/hooks/*
+%doc COPYING README.markdown NEWS example/hooks/* example/pre-hooks/*
 %config(noreplace) %{_sysconfdir}/ganeti/instance-%{instancename}/variants/default.conf
 %config(noreplace) %{_sysconfdir}/ganeti/instance-%{instancename}/variants.list
 %config(noreplace) %{_sysconfdir}/ganeti/instance-%{instancename}/hooks/*
+%config(noreplace) %{_sysconfdir}/ganeti/instance-%{instancename}/pre-hooks/*
 %{_datadir}/ganeti/os/%{instancename}/*
 
 

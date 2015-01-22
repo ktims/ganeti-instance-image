@@ -3,4 +3,5 @@ usr/share/ganeti/os/image/tools
 var/cache/ganeti-instance-image
 etc/default
 etc/ganeti/instance-image/hooks
+etc/ganeti/instance-image/pre-hooks
 

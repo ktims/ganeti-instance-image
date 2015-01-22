@@ -20,11 +20,50 @@
 
 set -e
 
-. ../hooks/common.sh
+. common.sh
 
 debug set -x
 
 if [ "${IMAGE_TYPE}" = 'qemu' ]; then
+
+    part_table() {
+        local action="$1" # set, get
+        # sfdisk -d seems to always output in 512-byte sectors regardless of -uX
+        # (using -uS here anyway in case someone else's sfdisk has a different default)
+        if [ 'set' = "$action" ]; then
+            ${SFDISK} -L -uS ${BLOCKDEV} 2>/dev/null
+        else
+            ${SFDISK} -L -uS -d ${BLOCKDEV} 2>/dev/null
+        fi
+    }
+
+    get_part_sizes() {
+        local part_num="$1"
+        part_table get | \
+            sed -n -e '1,/^$/ b; p' | \
+            sed -e "$(
+                test -z "$root_part_num" || printf '%d q; ' `expr $part_num + 1`
+            )"'s/^.*size= *\([0-9]\+\),.*$/\1/' | \
+            tr '\n' ' '
+    }
+
+    part_size() {
+        local action="$1" # reset, set, get
+        local part_num="$2"
+        if [ 'set' = "$action" ]; then
+            local value="$3"
+        else
+            local value=
+        fi
+        part_table get | \
+            sed -n -e '1,/^$/ b; p' | \
+            if [ 'get' = "$action" ]; then
+                sed -n -e "${part_num}"'! b; s/^.*size= *\([0-9]\+\),.*$/\1/; p; q'
+            else
+                sed -e "${part_num}"'! b; s/size= *[0-9]\+,/size=,'"${value}/" | \
+                    part_table set
+            fi
+    }
 
     if which partprobe >/dev/null 2>&1; then
         PARTPROBE="`which partprobe`"
@@ -44,17 +83,11 @@ if [ "${IMAGE_TYPE}" = 'qemu' ]; then
     device_size=`${BLOCKDEV_CMD} --getsz ${BLOCKDEV}`
 
     # Get list of assigned partition sizes in table
-    sfdisk_sizes="`
-        # sfdisk -d seems to always output in 512-byte sectors regardless of -uX
-        # (using -uS here anyway in case someone else's sfdisk has a different default)
-        ${SFDISK} -L -uS -d ${BLOCKDEV} 2>/dev/null | \
-          sed -n -e '/^$/,$! b; /^$/ d; s:^.*size= *\([0-9]\+\),.*$:\1:; p' | \
-          tr '\n' ' '
-    `"
+    part_sizes="`get_part_sizes`"
 
     # Calculate total size used by partitions
     used_size=0
-    for part_size in ${sfdisk_sizes}; do
+    for part_size in ${part_sizes}; do
         used_size=`expr ${used_size} + ${part_size}`
     done
 
@@ -78,39 +111,8 @@ if [ "${IMAGE_TYPE}" = 'qemu' ]; then
             part_num=1
         fi
 
-        # Expand final partition
-        ${SFDISK} -L -d ${BLOCKDEV} 2>/dev/null | \
-          {
-              counter=0
-              while IFS= read -r sfdiskline; do
-                  if [ 0 -eq $counter ]; then
-                      if [ -z "$sfdiskline" ]; then
-                          counter=1
-                      fi
-                      printf '%s\n' "$sfdiskline"
-                  else
-                      if [ $part_num -eq $counter ]; then
-                          printf '%s\n' "$sfdiskline" | \
-                              sed -e 's/size= *[0-9]\+,/size=,/'
-                      else
-                          printf '%s\n' "$sfdiskline"
-                      fi
-                      counter=`expr $counter + 1`
-                  fi
-              done
-          } | ${SFDISK} -L ${BLOCKDEV} 2>/dev/null
-
-        # Update awareness of new device size
-        new_device_size=`${BLOCKDEV_CMD} --getsz ${BLOCKDEV}`
-        new_device_table="$(
-            ${DMSETUP} table ${BLOCKDEV} | \
-                sed -e 's/^\([^ \t]\+[ \t]\+\)[^ \t]\+\([ \t]\)$/\1'"${new_device_size}"'\2/'
-        )"
-        trap 'set +e; cleanup' EXIT # not pretty, but the alternative would be too complex
-        ${DMSETUP} suspend ${BLOCKDEV}
-        ${DMSETUP} reload ${BLOCKDEV} --table "$new_device_table"
-        ${DMSETUP} resume ${BLOCKDEV}
-        trap cleanup EXIT # ..back to normal
+        # Expand (maximise) final partition
+        part_size reset $part_num
 
         filesystem_dev=$(map_disk0 ${BLOCKDEV})
         CLEANUP+=("unmap_disk0 ${BLOCKDEV}")

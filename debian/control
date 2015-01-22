@@ -2,7 +2,7 @@ Source: ganeti-instance-image
 Section: admin
 Priority: extra
 Maintainer: Lance Albertson <lance@osuosl.org>
-Build-Depends: automake, autotools-dev, debhelper (>= 7), dmsetup, dump,
+Build-Depends: automake, autotools-dev, debhelper (>= 7), dump,
  e2fsprogs, gawk, kpartx, parted, qemu (>= 0.11) | qemu-kvm (>= 0.11),
  wget
 Standards-Version: 3.7.3
@@ -14,7 +14,7 @@ Package: ganeti-instance-image
 Architecture: all
 Depends: ${misc:Depends}, dump, gawk, kpartx,
  qemu (>= 0.11) | qemu-kvm (>= 0.11), wget
-Recommends: dmsetup, e2fsprogs, parted
+Recommends: e2fsprogs, parted
 Conflicts: ganeti (<< 2.9.3)
 Enhances: ganeti
 Description: image based instance OS definition for ganeti
