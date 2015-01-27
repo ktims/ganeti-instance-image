@@ -41,7 +41,12 @@ else
   disk="xda"
 fi
 
-boot_dir="${TARGET}/boot/grub"
+if test -s "${TARGET}/boot/grub2/grub.cfg"; then
+    boot_dir_internal='/boot/grub2'
+else
+    boot_dir_internal='/boot/grub'
+fi
+boot_dir="${TARGET}${boot_dir_internal}"
 
 setup_disk_devs() {
     root_part="${ROOT_DEV/*-/}"
@@ -79,7 +84,7 @@ EOF
 }
 
 add_devicemap() {
-    cat > "${TARGET}/boot/grub/device.map" <<EOF
+    cat > "${boot_dir}/device.map" <<EOF
 (hd0) /dev/${disk}
 EOF
 }
@@ -95,7 +100,7 @@ if [ "${IMAGE_TYPE}" != "qemu" ] && \
         grub="$(chroot ${TARGET} which grub)"
         # install grub to the block device
         chroot ${TARGET} ${grub} --batch --no-floppy \
-            --device-map=/boot/grub/device.map > /dev/null <<EOF
+            --device-map=${boot_dir_internal}/device.map > /dev/null <<EOF
 root (hd0,0)
 setup (hd0)
 quit
@@ -115,7 +120,9 @@ EOF
         echo "grub2 support is partially supported"
         echo "please run update-grub after the instance is online"
 
-        grub_setup="$(chroot ${TARGET} which grub-setup)"
+        grub_setup="$(
+            chroot ${TARGET} /bin/sh -c 'which grub-setup || which grub-bios-setup || which grub2-bios-setup'
+        )" 2>/dev/null
         # check to see if grub is using UUID's and replace if so
         if [ -n "$(grep 'root=UUID' ${boot_dir}/grub.cfg)" ] ; then
             root_uuid="$($VOL_ID $ROOT_DEV)"
@@ -131,8 +138,8 @@ EOF
         sed -ie 's/.*GRUB_HIDDEN_TIMEOUT=.*/GRUB_HIDDEN_TIMEOUT=5/' ${TARGET}/etc/default/grub
         sed -ie 's/.*GRUB_HIDDEN_TIMEOUT_QUIET=.*/GRUB_HIDDEN_TIMEOUT_QUIET=false/' ${TARGET}/etc/default/grub
         # install grub2 MBR
-        chroot ${TARGET} ${grub_setup} --force --device-map=/boot/grub/device.map \
-            --directory=/boot/grub --root-device="(hd0,1)" "(hd0)" > /dev/null
+        chroot ${TARGET} ${grub_setup} --force --device-map=${boot_dir_internal}/device.map \
+            --directory=${boot_dir_internal} --root-device="(hd0,1)" "(hd0)" > /dev/null
     fi
 fi
 
