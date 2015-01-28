@@ -1,0 +1,26 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2015 Greek Research and Technology Network
+#
+
+set -e
+
+. common.sh
+
+get_os $TARGET
+
+debug set -x
+
+umask 077
+
+case $OPERATING_SYSTEM in
+	centos)
+		dd if=/dev/urandom of=${TARGET}/var/lib/systemd/random-seed bs=512 count=1 >/dev/null 2>&1
+		;;
+	debian|ubuntu)
+		dd if=/dev/urandom of=${TARGET}/var/lib/urandom/random-seed bs=512 count=1 >/dev/null 2>&1
+		;;
+esac
+
+exit 0
