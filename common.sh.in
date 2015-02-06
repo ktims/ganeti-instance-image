@@ -41,6 +41,8 @@ CLEANUP=( )
 
 usage() { :; } # override this
 
+debug() { case "$IMAGE_DEBUG" in 1|yes) "$@" || : ;; esac; }
+
 printout() { printf "$@" | sed -e "s/^/${SCRIPT_NAME}: /"; }
 
 printerr() { printout "$@" >&2; }
@@ -61,10 +63,6 @@ pop_cleanup() {
 
 log_error() {
   echo "$@" >&2
-}
-
-debug() {
-    [ "$IMAGE_DEBUG" == "1" -o "$IMAGE_DEBUG" == "yes" ] && "$@" || :
 }
 
 get_api5_arguments() {
