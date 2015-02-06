@@ -19,9 +19,7 @@
 #
 
 set -e
-
-. common.sh
-
+. ./common.sh
 debug set -x
 
 if [ "${IMAGE_TYPE}" = 'qemu' ]; then

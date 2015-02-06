@@ -18,9 +18,7 @@
 # 02110-1301, USA.
 
 set -e
-
-. common.sh
-
+. ./common.sh
 debug set -x
 
 # If the target device is not a real block device we'll first losetup it.

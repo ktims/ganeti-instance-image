@@ -20,9 +20,7 @@
 # Remove all generated keys so that each instance has unique keys for ssh
 
 set -e
-
-. common.sh
-
+. ./common.sh
 debug set -x
 
 HOST_KEY="/etc/ssh/ssh_host_key"

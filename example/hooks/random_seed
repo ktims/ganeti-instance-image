@@ -5,12 +5,10 @@
 #
 
 set -e
-
-. common.sh
-
-get_os $TARGET
-
+. ./common.sh
 debug set -x
+
+get_os "$TARGET"
 
 umask 077
 

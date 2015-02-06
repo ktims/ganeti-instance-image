@@ -21,9 +21,7 @@
 # installation. By default it sets it up to use dhcp.
 
 set -e
-
-. common.sh
-
+. ./common.sh
 debug set -x
 
 FQDN="${INSTANCE_NAME}"

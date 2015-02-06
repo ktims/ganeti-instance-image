@@ -21,9 +21,7 @@
 # host-name" so that Dynamic DNS work properly after installation.
 
 set -e
-
-. common.sh
-
+. ./common.sh
 debug set -x
 
 FQDN="${INSTANCE_NAME}"

@@ -23,9 +23,7 @@
 # type. 
 
 set -e
-
-. common.sh
-
+. ./common.sh
 debug set -x
 
 if [ -z "${TARGET}" -o ! -d "${TARGET}" ] ; then
