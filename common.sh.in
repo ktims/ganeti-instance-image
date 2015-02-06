@@ -53,57 +53,24 @@ die() { printerr "$@"; exit 1; }
 
 croak() { usage >&2; die "$@"; }
 
+log_error() { echo "$@" >&2; }
+
+cleanup() {
+  if [ ${#CLEANUP[*]} -gt 0 ]; then
+    LAST_ELEMENT=$((${#CLEANUP[*]}-1))
+    REVERSE_INDEXES=$(seq ${LAST_ELEMENT} -1 0)
+    for i in $REVERSE_INDEXES; do
+      ${CLEANUP[$i]}
+    done
+  fi
+}
+
 pop_cleanup() {
     if [ ${#CLEANUP[@]} -eq 1 ]; then
         CLEANUP=( )
     else
         CLEANUP=("${CLEANUP[0]}" "${CLEANUP[@]:2}")
     fi
-}
-
-log_error() {
-  echo "$@" >&2
-}
-
-get_api10_arguments() {
-  if [ -z "$INSTANCE_NAME" -o -z "$HYPERVISOR" -o -z "$DISK_COUNT" ]; then
-    log_error "Missing OS API Variable:"
-    log_error "(INSTANCE_NAME HYPERVISOR or DISK_COUNT)"
-    exit 1
-  fi
-  instance=$INSTANCE_NAME
-  if [ $DISK_COUNT -lt 1 -o -z "$DISK_0_PATH" ]; then
-    log_error "At least one disk is needed"
-    exit 1
-  fi
-  if [ "$SCRIPT_NAME" = "export" ]; then
-    if [ -z "$EXPORT_DEVICE" ]; then
-      log_error "Missing OS API Variable EXPORT_DEVICE"
-    fi
-    blockdev=$EXPORT_DEVICE
-  elif [ "$SCRIPT_NAME" = "import" ]; then
-    if [ -z "$IMPORT_DEVICE" ]; then
-       log_error "Missing OS API Variable IMPORT_DEVICE"
-    fi
-    blockdev=$IMPORT_DEVICE
-  else
-    blockdev=$DISK_0_PATH
-  fi
-  if [ "$SCRIPT_NAME" = "rename" -a -z "$OLD_INSTANCE_NAME" ]; then
-    log_error "Missing OS API Variable OLD_INSTANCE_NAME"
-  fi
-  old_name=$OLD_INSTANCE_NAME
-}
-
-get_api20_parameters() {
-  if [ -z "$OSP_IMG_ID" -o -z "$OSP_IMG_FORMAT" ]; then
-    log_error "Missing OS API Parameter:"
-    log_error "(OSP_IMG_ID or OSP_IMG_FORMAT)"
-    exit 1
-  fi
-  IMG_ID=$OSP_IMG_ID
-  IMAGE_TYPE=$OSP_IMG_FORMAT
-  IMG_SSH_KEY_URL=$OSP_IMG_SSH_KEY_URL
 }
 
 get_os_type() {
@@ -303,6 +270,10 @@ map_disk0() {
     echo "$filesystem_dev"
 }
 
+unmap_disk0() { $KPARTX -d -p- $1; }
+
+update_map_disk0() { $KPARTX -u -p- $1; }
+
 map_partition() {
     filesystem_dev="$1"
     partition="$2"
@@ -320,14 +291,6 @@ map_partition() {
         root_dev="${filesystem_dev}-1"
     fi
     echo "$(eval "echo \${$(echo ${partition}_dev)"})"
-}
-
-unmap_disk0() {
-  $KPARTX -d -p- $1
-}
-
-update_map_disk0() {
-  $KPARTX -u -p- $1
 }
 
 setup_fstab() {
@@ -457,15 +420,48 @@ filesystem_check() {
     esac
 }
 
-cleanup() {
-  if [ ${#CLEANUP[*]} -gt 0 ]; then
-    LAST_ELEMENT=$((${#CLEANUP[*]}-1))
-    REVERSE_INDEXES=$(seq ${LAST_ELEMENT} -1 0)
-    for i in $REVERSE_INDEXES; do
-      ${CLEANUP[$i]}
-    done
+get_api10_arguments() {
+  if [ -z "$INSTANCE_NAME" -o -z "$HYPERVISOR" -o -z "$DISK_COUNT" ]; then
+    log_error "Missing OS API Variable:"
+    log_error "(INSTANCE_NAME HYPERVISOR or DISK_COUNT)"
+    exit 1
   fi
+  instance=$INSTANCE_NAME
+  if [ $DISK_COUNT -lt 1 -o -z "$DISK_0_PATH" ]; then
+    log_error "At least one disk is needed"
+    exit 1
+  fi
+  if [ "$SCRIPT_NAME" = "export" ]; then
+    if [ -z "$EXPORT_DEVICE" ]; then
+      log_error "Missing OS API Variable EXPORT_DEVICE"
+    fi
+    blockdev=$EXPORT_DEVICE
+  elif [ "$SCRIPT_NAME" = "import" ]; then
+    if [ -z "$IMPORT_DEVICE" ]; then
+       log_error "Missing OS API Variable IMPORT_DEVICE"
+    fi
+    blockdev=$IMPORT_DEVICE
+  else
+    blockdev=$DISK_0_PATH
+  fi
+  if [ "$SCRIPT_NAME" = "rename" -a -z "$OLD_INSTANCE_NAME" ]; then
+    log_error "Missing OS API Variable OLD_INSTANCE_NAME"
+  fi
+  old_name=$OLD_INSTANCE_NAME
 }
+
+get_api20_parameters() {
+  if [ -z "$OSP_IMG_ID" -o -z "$OSP_IMG_FORMAT" ]; then
+    log_error "Missing OS API Parameter:"
+    log_error "(OSP_IMG_ID or OSP_IMG_FORMAT)"
+    exit 1
+  fi
+  IMG_ID=$OSP_IMG_ID
+  IMAGE_TYPE=$OSP_IMG_FORMAT
+  IMG_SSH_KEY_URL=$OSP_IMG_SSH_KEY_URL
+}
+
+##
 
 trap cleanup EXIT
 
@@ -508,7 +504,6 @@ fi
 
 SCRIPT_NAME=$(basename $0)
 KERNEL_PATH="$INSTANCE_HV_kernel_path"
-
 VOL_ID="${BLKID} -c /dev/null -o value -s UUID"
 VOL_TYPE="${BLKID} -c /dev/null -o value -s TYPE"
 
