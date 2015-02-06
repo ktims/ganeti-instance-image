@@ -11,7 +11,7 @@ info=($(gnt-instance list -o os,hypervisor,disk.count --no-headers --separator='
 OS_VARIANT="${info[0]/*+/}"
 HYPERVISOR="${info[1]}"
 DISK_COUNT="${info[2]}"
-OS_API_VERSION="15"
+OS_API_VERSION="20"
 
 # do stuff
 output="$(gnt-instance activate-disks $INSTANCE_NAME)"

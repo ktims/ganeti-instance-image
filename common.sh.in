@@ -65,39 +65,6 @@ log_error() {
   echo "$@" >&2
 }
 
-get_api5_arguments() {
-  GETOPT_RESULT=$*
-  # Note the quotes around `$TEMP': they are essential!
-  eval set -- "$GETOPT_RESULT"
-  while true; do
-    case "$1" in
-      -i|-n) instance=$2; shift 2;;
-
-      -o) old_name=$2; shift 2;;
-
-      -b) blockdev=$2; shift 2;;
-
-      -s) swapdev=$2; shift 2;;
-
-      --) shift; break;;
-
-      *)  log_error "Internal error!" >&2; exit 1;;
-    esac
-  done
-  if [ -z "$instance" -o -z "$blockdev" ]; then
-    log_error "Missing OS API Argument (-i, -n, or -b)"
-    exit 1
-  fi
-  if [ "$SCRIPT_NAME" != "export" -a -z "$swapdev"  ]; then
-    log_error "Missing OS API Argument -s (swapdev)"
-    exit 1
-  fi
-  if [ "$SCRIPT_NAME" = "rename" -a -z "$old_name"  ]; then
-    log_error "Missing OS API Argument -o (old_name)"
-    exit 1
-  fi
-}
-
 get_api10_arguments() {
   if [ -z "$INSTANCE_NAME" -o -z "$HYPERVISOR" -o -z "$DISK_COUNT" ]; then
     log_error "Missing OS API Variable:"
@@ -545,21 +512,9 @@ KERNEL_PATH="$INSTANCE_HV_kernel_path"
 VOL_ID="${BLKID} -c /dev/null -o value -s UUID"
 VOL_TYPE="${BLKID} -c /dev/null -o value -s TYPE"
 
-if [ -z "$OS_API_VERSION" -o "$OS_API_VERSION" = "5" ]; then
-  OS_API_VERSION=5
-  GETOPT_RESULT=`getopt -o o:n:i:b:s: -n '$0' -- "$@"`
-  if [ $? != 0 ] ; then log_error "Terminating..."; exit 1 ; fi
-  get_api5_arguments $GETOPT_RESULT
-elif [ "$OS_API_VERSION" = "10" -o "$OS_API_VERSION" = "15" ]; then
-  get_api10_arguments
-elif [ "$OS_API_VERSION" = "20" ]; then
-  get_api10_arguments
-  get_api20_parameters
-  IMAGE_NAME=$IMG_ID
-else
-  log_error "Unknown OS API VERSION $OS_API_VERSION"
-  exit 1
-fi
+get_api10_arguments
+get_api20_parameters
+IMAGE_NAME=$IMG_ID
 
 if [ -n "$OS_VARIANT" ]; then
   if [ ! -d "$VARIANTS_DIR" ]; then

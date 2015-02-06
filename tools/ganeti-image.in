@@ -92,7 +92,7 @@ OS_VARIANT="${info[0]/*+/}"
 HYPERVISOR="${info[1]}"
 DISK_COUNT="${info[2]}"
 INSTANCE_HV_kernel_path="${info[3]}"
-OS_API_VERSION="15"
+OS_API_VERSION="20"
 
 # Activate disks and capture output
 ad_output=($(gnt-instance activate-disks $INSTANCE_NAME | sed -e 's/\:/ /g'))
