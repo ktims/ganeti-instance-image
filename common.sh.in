@@ -39,6 +39,18 @@ BLKID="@BLKID@"
 
 CLEANUP=( )
 
+usage() { :; } # override this
+
+printout() { printf "$@" | sed -e "s/^/${SCRIPT_NAME}: /"; }
+
+printerr() { printout "$@" >&2; }
+
+verbprint() { test 0 -eq $VERBOSE || printerr "$@"; }
+
+die() { printerr "$@"; exit 1; }
+
+croak() { usage >&2; die "$@"; }
+
 pop_cleanup() {
     if [ ${#CLEANUP[@]} -eq 1 ]; then
         CLEANUP=( )
