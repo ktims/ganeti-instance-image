@@ -24,11 +24,11 @@ set -e
 . ./common.sh
 debug set -x
 
-test -d "$TARGET" || { log_error 'Missing target directory'; exit 1; }
+test -d "$TARGET" || die 'Missing target directory\n'
 
 if test -n "$OVERLAY"; then
     overlay="${OVERLAYS_DIR}/$OVERLAY"
-    test -d "$overlay" || { log_error "$overlay not found"; exit 1; }
+    test -d "$overlay" || die '"%s" not found\n' "$overlay"
     # copy overlay files into target instance
     cp -ax "$overlay"/* "$TARGET"
 fi

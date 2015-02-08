@@ -28,7 +28,7 @@ FQDN="$INSTANCE_NAME"
 SHORT_NAME="$(printf '%s' "$INSTANCE_NAME" | cut -d. -f1)"
 RENAME=''
 
-test -d "$TARGET" || { log_error 'Missing target directory'; exit 1; }
+test -d "$TARGET" || die 'Missing target directory\n'
 
 while getopts 'r' _opt; do
     ! test 'r' = "$_opt" || RENAME='true'
@@ -42,8 +42,7 @@ debian_setup() {
     elif test -f "${TARGET}/etc/dhcp3/dhclient.conf"; then
         _dhclient_conf="${TARGET}/etc/dhcp3/dhclient.conf"
     else
-        log_error 'Missing dhclient.conf file'
-        exit 1
+        die 'Missing dhclient.conf file\n'
     fi
 
     if test -n "$FQDN" && test -z "$RENAME"; then
@@ -54,7 +53,7 @@ debian_setup() {
 }
 
 redhat_setup() {
-    test -f "${TARGET}/etc/sysconfig/network-scripts/ifcfg-eth0" || { log_error 'Missing ifcfg-eth0 file'; exit 1; }
+    test -f "${TARGET}/etc/sysconfig/network-scripts/ifcfg-eth0" || die 'Missing ifcfg-eth0 file\n'
     if test -n "$FQDN" && test -z "$RENAME"; then
         printf 'DHCP_HOSTNAME=%s' "$SHORT_NAME" >>"${TARGET}/etc/sysconfig/network-scripts/ifcfg-eth0"
     else
@@ -62,9 +61,9 @@ redhat_setup() {
     fi
 }
 
-gentoo_setup() { log_error 'no action needed for ddns'; }
+gentoo_setup() { verbprint 'no action needed for ddns\n'; }
 
-suse_setup() { log_error 'untested for suse'; }
+suse_setup() { verbprint 'untested for suse\n'; }
 
 # Main
 get_os_type
@@ -72,5 +71,5 @@ get_os_type
 if test $NIC_COUNT -gt 0 && test -n "$OS_TYPE"; then
     "${OS_TYPE}_setup"
 else
-    log_error 'Unsupported OS_TYPE'
+    die 'Unsupported OS_TYPE\n'
 fi

@@ -26,7 +26,7 @@ set -e
 . ./common.sh
 debug set -x
 
-test -d "$TARGET" || { log_error 'Missing target directory'; exit 1; }
+test -d "$TARGET" || die 'Missing target directory\n'
 
 # Set disk based on type of hypervisor
 if test 'kvm' = "$HYPERVISOR"; then
@@ -153,7 +153,7 @@ if test 'True' = "$INSTANCE_HV_serial_console"; then
         printf 'GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"\n' \
             >>"${TARGET}/etc/default/grub"
     else
-        log_error 'No grub bootloader found, skipping...'
+        verbprint 'No grub bootloader found, skipping...\n'
     fi
 fi
 

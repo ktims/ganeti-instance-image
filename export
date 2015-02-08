@@ -53,7 +53,7 @@ else
         # upcoming commit)
         dev="$(eval "echo \${$(echo ${_fs}_dev)"})"
         vol_type="$(eval echo \$vol_type_${_fs})"
-        test -n "$vol_type" || test -z "$dev" || { log_error "Unable to find $_fs filesystem type at $dev"; exit 1; }
+        test -n "$vol_type" || test -z "$dev" || die 'Unable to find %s filesystem type at %s\n' "$_fs" "$dev"
         if test -n "$dev"; then
             case "$vol_type" in
                 ext3|ext2|ext4)
@@ -61,8 +61,7 @@ else
                     CLEANUP+=("rm -f \"${TARGET}/${_fs}.dump\"")
                     ;;
                 *)
-                    log_error "$_fs is not a supported filesystem. Please use ext{2,3,4}"
-                    exit 1
+                    die '%s is not a supported filesystem. Please use ext{2,3,4}\n' "$_fs"
                     ;;
             esac
         fi

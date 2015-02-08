@@ -53,8 +53,6 @@ die() { printerr "$@"; exit 1; }
 
 croak() { usage >&2; die "$@"; }
 
-log_error() { printf '%s\n' "$*" >&2; }
-
 cleanup() {
     if test ${#CLEANUP[*]} -gt 0; then
         LAST_ELEMENT=`expr ${#CLEANUP[*]} - 1 || :`
@@ -74,7 +72,7 @@ pop_cleanup() {
 }
 
 get_os_type() {
-    test -n "$TARGET" || { log_error 'TARGET is not set in get_os_type'; exit 1; }
+    test -n "$TARGET" || die 'TARGET is not set in get_os_type\n'
     if test -e "${TARGET}/etc/redhat-release"; then
         OS_TYPE='redhat'
     elif test -e "${TARGET}/etc/debian_version"; then
@@ -87,7 +85,7 @@ get_os_type() {
 }
 
 get_os() {
-    test -n "$TARGET" || { log_error 'TARGET is not set in get_os'; exit 1; }
+    test -n "$TARGET" || die 'TARGET is not set in get_os\n'
     _lsb='/usr/bin/lsb_release'
     if test -e "${TARGET}/$_lsb"; then
         OPERATING_SYSTEM="$(chroot "$TARGET" "$_lsb" -i -s | tr '[:upper:]' '[:lower:]')"
@@ -107,7 +105,7 @@ get_os() {
 }
 
 get_os_release() {
-    test -n "$TARGET" || { log_error 'TARGET is not set in get_os_release'; exit 1; }
+    test -n "$TARGET" || die 'TARGET is not set in get_os_release\n'
     _lsb='/usr/bin/lsb_release'
     if test -e "${TARGET}/$_lsb"; then
         OS_RELEASE="$(chroot "$TARGET" "$_lsb" -r -s | tr '[:upper:]' '[:lower:]')"
@@ -243,11 +241,11 @@ map_disk0() {
             grep -m 1 -- "-1.*$BLOCKDEV" | \
             "$AWK" '{print $1}'
     `"
-    test -n "$_filesystem_dev1_base" || { log_error 'Cannot interpret kpartx output and get partition mapping'; exit 1; }
+    test -n "$_filesystem_dev1_base" || die 'Cannot interpret kpartx output and get partition mapping\n'
     $KPARTX -a -p- "$BLOCKDEV" >/dev/null
     _filesystem_dev="/dev/mapper/${_filesystem_dev1_base%-1}"
     test -b "/dev/mapper/$_filesystem_dev1_base" || \
-        { log_error "Can't find kpartx mapped partition: /dev/mapper/$_filesystem_dev1_base"; exit 1; }
+        die 'Can'\''t find kpartx mapped partition: /dev/mapper/%s\n' "$_filesystem_dev1_base"
     printf '%s' "$_filesystem_dev"
 }
 
@@ -329,7 +327,7 @@ get_service_manager() {
 }
 
 setup_console() {
-    test -n "$TARGET" || { log_error 'TARGET not set for setup_console'; exit 1; }
+    test -n "$TARGET" || die 'TARGET not set for setup_console\n'
     case "`get_service_manager`" in
         upstart)
             if test -e "${TARGET}/etc/event.d/tty1"; then
@@ -360,7 +358,7 @@ setup_console() {
                     sed --follow-symlinks -i -e 's/.*T0.*/T0:23:respawn:\/sbin\/getty -L ttyS0 115200 vt100/' "${TARGET}/etc/inittab"
                     ;;
                 *)
-                    log_error 'No support for your OS in instance-image, skipping...'
+                    verbprint 'No support for your OS in instance-image, skipping...\n'
                     ;;
             esac
             ;;
@@ -371,13 +369,13 @@ setup_console() {
 }
 
 filesystem_check() {
-    test -n "$TARGET" || { log_error 'TARGET not set for filesystem_check'; exit 1; }
+    test -n "$TARGET" || die 'TARGET not set for filesystem_check\n'
     get_os
     case "$OPERATING_SYSTEM" in
         fedora|centos|redhat)
             # we have to force a filesystem relabeling for SELinux after messing
             # around with the filesystem in fedora
-            log_error 'Enforce an automatic relabeling in the initial boot process...'
+            verbprint 'Enforce an automatic relabeling in the initial boot process...\n'
             touch "${TARGET}/.autorelabel"
             ;;
     esac
@@ -385,16 +383,16 @@ filesystem_check() {
 
 get_api10_arguments() {
     test -n "$INSTANCE_NAME" && test -n "$HYPERVISOR" && test -n "$DISK_COUNT" || \
-        { log_error 'Missing OS API Variable:'; log_error '(INSTANCE_NAME, HYPERVISOR or DISK_COUNT)'; exit 1; }
+        die 'Missing OS API Variable:\n(INSTANCE_NAME, HYPERVISOR or DISK_COUNT)\n'
     instance="$INSTANCE_NAME"
-    test 1 -le $DISK_COUNT && test -n "$DISK_0_PATH" || { log_error 'At least one disk is needed'; exit 1; }
+    test 1 -le $DISK_COUNT && test -n "$DISK_0_PATH" || die 'At least one disk is needed\n'
     case "$SCRIPT_NAME" in
         export)
-            test -n "$EXPORT_DEVICE" || log_error 'Missing OS API Variable EXPORT_DEVICE'
+            test -n "$EXPORT_DEVICE" || die 'Missing OS API Variable EXPORT_DEVICE\n'
             BLOCKDEV="$EXPORT_DEVICE"
             ;;
         import)
-            test -n "$IMPORT_DEVICE" || log_error 'Missing OS API Variable IMPORT_DEVICE'
+            test -n "$IMPORT_DEVICE" || die 'Missing OS API Variable IMPORT_DEVICE\n'
             BLOCKDEV="$IMPORT_DEVICE"
             ;;
         *)
@@ -402,13 +400,13 @@ get_api10_arguments() {
             ;;
     esac
     ! test 'rename' = "$SCRIPT_NAME" || test -n "$OLD_INSTANCE_NAME" || \
-         { log_error 'Missing OS API Variable OLD_INSTANCE_NAME'; exit 1; }
+        die 'Missing OS API Variable OLD_INSTANCE_NAME\n'
     old_name="$OLD_INSTANCE_NAME"
 }
 
 get_api20_parameters() {
     test -n "$OSP_IMG_ID" && test -n "$OSP_IMG_FORMAT" || \
-        { log_error 'Missing OS API Parameter:'; log_error '(OSP_IMG_ID or OSP_IMG_FORMAT)'; exit 1; }
+        die 'Missing OS API Parameter:\n(OSP_IMG_ID or OSP_IMG_FORMAT)\n'
     IMG_ID="$OSP_IMG_ID"
     IMAGE_TYPE="$OSP_IMG_FORMAT"
     IMG_SSH_KEY_URL="$OSP_IMG_SSH_KEY_URL"
@@ -463,21 +461,20 @@ get_api20_parameters
 IMAGE_NAME="$IMG_ID"
 
 if test -n "$OS_VARIANT"; then
-    test -d "$VARIANTS_DIR" || { log_error "OS Variants directory $VARIANTS_DIR doesn't exist"; exit 1; }
+    test -d "$VARIANTS_DIR" || die 'OS Variants directory %s doesn'\''t exist\n' "$VARIANTS_DIR"
     VARIANT_CONFIG="${VARIANTS_DIR}/${OS_VARIANT}.conf"
     if test -f "$VARIANT_CONFIG"; then
         . "$VARIANT_CONFIG"
     else
         if grep -qxF "$OS_VARIANT" variants.list; then
-            log_error 'ERROR: instance-image configuration error'
-            log_error "  Published variant $OS_VARIANT is missing its config file"
-            log_error "  Please create $VARIANT_CONFIG or unpublish the variant"
-            log_error "  (by removing $OS_VARIANT from variants.list)"
+            die 'ERROR: instance-image configuration error
+  Published variant %s is missing its config file
+  Please create %s or unpublish the variant
+  (by removing %s from variants.list)\n' "$OS_VARIANT" "$VARIANT_CONFIG" "$OS_VARIANT"
         else
-            log_error "Unofficial variant $OS_VARIANT is unsupported"
-            log_error 'Most probably this is a user error, forcing a wrong name'
-            log_error "To support this variant please create file $VARIANT_CONFIG"
+            die 'Unofficial variant %s is unsupported
+Most probably this is a user error, forcing a wrong name
+To support this variant please create file %s\n' "$OS_VARIANT" "$VARIANT_CONFIG"
         fi
-        exit 1
     fi
 fi
