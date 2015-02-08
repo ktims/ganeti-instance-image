@@ -121,7 +121,7 @@ get_os_release() {
         exit 1
     fi
     lsb="/usr/bin/lsb_release"
-    if [ -e ${target}/lsb ] ; then
+    if [ -e ${target}/$lsb ] ; then
         OS_RELEASE="$(chroot ${target} ${lsb} -r -s | tr "[:upper:]" "[:lower:]")"
     elif [ -e ${target}/etc/debian_version ] ; then
         OS_RELEASE="$(cat ${target}/etc/debian_version)"
