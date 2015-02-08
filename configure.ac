@@ -36,58 +36,36 @@ AC_PROG_MKDIR_P
 # "build-deps" in order to inject their paths into the scripts
 
 AC_PATH_PROG(DUMP, [dump], [], [$PATH:/usr/sbin:/sbin])
-if test -z "$DUMP" ; then
-  AC_MSG_ERROR([dump not found in $PATH])
-fi
+if test -n "$DUMP" || AC_MSG_ERROR([dump not found in $PATH])
 
 AC_PATH_PROG(LOSETUP, [losetup], [], [$PATH:/usr/sbin:/sbin])
-if test -z "$LOSETUP" ; then
-  AC_MSG_ERROR([losetup not found in $PATH])
-fi
+test -n "$LOSETUP" || AC_MSG_ERROR([losetup not found in $PATH])
 
 AC_PATH_PROG(KPARTX, [kpartx], [], [$PATH:/usr/sbin:/sbin])
-if test -z "$KPARTX" ; then
-  AC_MSG_ERROR([kpartx not found in $PATH])
-fi
+test -n "$KPARTX" || AC_MSG_ERROR([kpartx not found in $PATH])
 
-if $KPARTX | grep -q '\-s sync mode'; then
-    KPARTX="$KPARTX -s"
-fi
+! $KPARTX | grep -q -- '-s sync mode' || KPARTX="$KPARTX -s"
 
 AC_PATH_PROG(SFDISK, [sfdisk], [], [$PATH:/usr/sbin:/sbin])
-if test -z "$SFDISK" ; then
-  AC_MSG_ERROR([sfdisk not found in $PATH])
-fi
+test -n "$SFDISK" || AC_MSG_ERROR([sfdisk not found in $PATH])
 
 AC_PATH_PROG(PARTED, [parted], [], [$PATH:/usr/sbin:/sbin])
-if test -z "$PARTED" ; then
-  AC_MSG_WARN([parted not found in $PATH])
-fi
+test -n "$PARTED" || AC_MSG_WARN([parted not found in $PATH])
 
 AC_PATH_PROG(QEMU_IMG, [qemu-img], [], [$PATH:/usr/bin:/bin])
-if test -z "$QEMU_IMG" ; then
-  AC_MSG_ERROR([qemu-img not found in $PATH])
-fi
+test -n "$QEMU_IMG" || AC_MSG_ERROR([qemu-img not found in $PATH])
 
 AC_PATH_PROG(WGET, [wget], [], [$PATH:/usr/bin:/bin])
-if test -z "$WGET" ; then
-  AC_MSG_ERROR([wget not found in $PATH])
-fi
+test -n "$WGET" || AC_MSG_ERROR([wget not found in $PATH])
 
 AC_PATH_PROG(SHA1SUM, [sha1sum], [], [$PATH:/usr/bin:/bin])
-if test -z "$SHA1SUM" ; then
-  AC_MSG_ERROR([sha1sum not found in $PATH])
-fi
+test -n "$SHA1SUM" || AC_MSG_ERROR([sha1sum not found in $PATH])
 
 AC_PATH_PROG(BLOCKDEV_CMD, [blockdev], [], [$PATH:/usr/sbin:/sbin])
-if test -z "$BLOCKDEV_CMD" ; then
-  AC_MSG_ERROR([blockdev not found in $PATH])
-fi
+test -n "$BLOCKDEV_CMD" || AC_MSG_ERROR([blockdev not found in $PATH])
 
 AC_PATH_PROG(BLKID, [blkid], [], [$PATH:/usr/sbin:/sbin])
-if test -z "$BLKID" ; then
-  AC_MSG_ERROR([blkid not found in $PATH])
-fi
+test -n "$BLKID" || AC_MSG_ERROR([blkid not found in $PATH])
 
 AC_CONFIG_FILES([
     Makefile

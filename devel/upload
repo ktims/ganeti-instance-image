@@ -24,42 +24,41 @@
 
 set -e
 
-hosts=
-while [ "$#" -gt 0 ]; do
-  opt="$1"
-  case "$opt" in
-    -h|--help)
-      echo "Usage: $0 hosts..."
-      exit 0
-      ;;
-    -*)
-      echo "Unknown option: $opt" >&2
-      exit 1
-    ;;
-    *)
-      hosts="$hosts $opt"
-    ;;
-  esac
-  shift
+hosts=''
+while test $# -gt 0; do
+    _opt="$1"
+    case "$_opt" in
+        -h|--help)
+            printf 'Usage: %s hosts...\n' "$0"
+            exit 0
+            ;;
+        -*)
+            printf 'Unknown option: %s\n' "$_opt" >&2
+            exit 1
+            ;;
+        *)
+            hosts="$hosts $_opt"
+            ;;
+    esac
+    shift
 done
 
-set ${hosts}
+set $hosts
 
-TXD=`mktemp -d`
-trap 'rm -rf $TXD' EXIT
+TXD="`mktemp -d`"
+trap 'rm -rf "$TXD"' EXIT
 
 # install the os as a real tree
 make install DESTDIR="$TXD"
 
-echo ---
+printf '---\n'
 
 ( cd "$TXD" && find; )
 
-echo ---
+printf '---\n'
 
-for host; do
-  echo Uploading code to ${host}...
-  rsync -v -rlDc ${TXD}/* root@${host}:/ &
+for _host; do
+    printf 'Uploading code to %s...\n' "$_host"
+    rsync -v -rlDc "$TXD"/* "root@${_host}:/" &
 done
 wait
-

@@ -3,37 +3,35 @@ set -e
 
 INSTANCE_NAME="$1"
 
-if [ -z "$INSTANCE_NAME" ] ; then
-    echo "Must provide a node name!"
+if test -z "$INSTANCE_NAME"; then
+    printf Must provide a node name!\n'
     exit 1
-fi   
+fi
 
-info=($(gnt-instance list -o os,hypervisor,disk.count --no-headers --separator=' ' $INSTANCE_NAME))
+info="$(gnt-instance list -o os,hypervisor,disk.count --no-headers --separator=' ' "$INSTANCE_NAME")"
 OS_VARIANT="${info[0]/*+/}"
 HYPERVISOR="${info[1]}"
 DISK_COUNT="${info[2]}"
-OS_API_VERSION="20"
+OS_API_VERSION=20
 
 # do stuff
-output="$(gnt-instance activate-disks $INSTANCE_NAME)"
+output="$(gnt-instance activate-disks "$INSTANCE_NAME")"
 
 DISK_0_PATH="`printf '%s' "$output" | sed -n -e '/disk\/0:/! b; s/^.*disk\/0://; p'`"
 filesystem_dev="${DISK_0_PATH/\/dev\//}"
 
-. @osdir@/@osname@/common.sh
+. "@osdir@/@osname@/common.sh"
 
-target="/tmp/${INSTANCE_NAME}_root"
+TARGET="/tmp/${INSTANCE_NAME}_root"
 
-root_dev=$(map_partition $filesystem_dev root)
-boot_dev=$(map_partition $filesystem_dev boot)
+root_dev="$(map_partition "$filesystem_dev" root)"
+boot_dev="$(map_partition "$filesystem_dev" boot)"
 
-if [ -n "${boot_dev}" ] ; then
-   umount $target/boot
-fi
+test -z "${boot_dev}" || umount "${TARGET}/boot"
 
-umount $target
-rmdir $target
-$KPARTX -d -p- $DISK_0_PATH
-gnt-instance deactivate-disks $INSTANCE_NAME
+umount "$TARGET"
+rmdir "$TARGET"
+$KPARTX -d -p- "$DISK_0_PATH"
+gnt-instance deactivate-disks "$INSTANCE_NAME"
 
 CLEANUP=( )

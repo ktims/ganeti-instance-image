@@ -24,74 +24,53 @@ set -e
 . ./common.sh
 debug set -x
 
-FQDN="${INSTANCE_NAME}"
-SHORT_NAME="$(echo ${INSTANCE_NAME} | cut -d . -f 1)"
-RENAME=
+FQDN="$INSTANCE_NAME"
+SHORT_NAME="$(printf '%s' "$INSTANCE_NAME" | cut -d. -f1)"
+RENAME=''
 
-if [ -z "${TARGET}" -o ! -d "${TARGET}" ] ; then
-    log_error "Missing target directory"
-    exit 1
-fi
+test -d "$TARGET" || { log_error 'Missing target directory'; exit 1; }
 
-while getopts "r" opt ; do
-    case $opt in
-        r)
-            RENAME=true
-            ;;
-        *)
-            ;;
-    esac
+while getopts 'r' _opt; do
+    ! test 'r' = "$_opt" || RENAME='true'
 done
 
 # Functions
 debian_setup() {
-    local dhclient_conf=""
-    if [ -f "${TARGET}/etc/dhcp/dhclient.conf" ] ; then
-        dhclient_conf="${TARGET}/etc/dhcp/dhclient.conf"
-    elif [ -f "${TARGET}/etc/dhcp3/dhclient.conf" ] ; then
-        dhclient_conf="${TARGET}/etc/dhcp3/dhclient.conf"
+    _dhclient_conf=''
+    if test -f "${TARGET}/etc/dhcp/dhclient.conf"; then
+        _dhclient_conf="${TARGET}/etc/dhcp/dhclient.conf"
+    elif test -f "${TARGET}/etc/dhcp3/dhclient.conf"; then
+        _dhclient_conf="${TARGET}/etc/dhcp3/dhclient.conf"
     else
-        log_error "Missing dhclient.conf file"
+        log_error 'Missing dhclient.conf file'
         exit 1
     fi
 
-    if [ -n "${FQDN}" ] && [ -z "${RENAME}" ] ; then
-        echo "send host-name ${SHORT_NAME};" >> ${dhclient_conf}
+    if test -n "$FQDN" && test -z "$RENAME"; then
+        printf 'send host-name %s;' "$SHORT_NAME" >>"$_dhclient_conf"
     else
-        sed -i -e "s/send host-name.*/send host-name ${SHORT_NAME};/" \
-            ${dhclient_conf}
+        sed --follow-symlinks -i -e 's/send host-name.*/send host-name '"$SHORT_NAME"';/' "$_dhclient_conf"
     fi
 }
 
 redhat_setup() {
-    if [ ! -f "${TARGET}/etc/sysconfig/network-scripts/ifcfg-eth0" ] ; then
-        log_error "Missing ifcfg-eth0 file"
-        exit 1
-    fi
-    if [ -n "${FQDN}" ] && [ -z "${RENAME}" ] ; then
-        echo "DHCP_HOSTNAME=${SHORT_NAME}" >> \
-            ${TARGET}/etc/sysconfig/network-scripts/ifcfg-eth0
+    test -f "${TARGET}/etc/sysconfig/network-scripts/ifcfg-eth0" || { log_error 'Missing ifcfg-eth0 file'; exit 1; }
+    if test -n "$FQDN" && test -z "$RENAME"; then
+        printf 'DHCP_HOSTNAME=%s' "$SHORT_NAME" >>"${TARGET}/etc/sysconfig/network-scripts/ifcfg-eth0"
     else
-        sed -i -e "s/DHCP_HOSTNAME=.*/DHCP_HOSTNAME=${SHORT_NAME}/" \
-            ${TARGET}/etc/sysconfig/network-scripts/ifcfg-eth0
+        sed --follow-symlinks -i -e 's/DHCP_HOSTNAME=.*/DHCP_HOSTNAME='"$SHORT_NAME"'/' "${TARGET}/etc/sysconfig/network-scripts/ifcfg-eth0"
     fi
 }
 
-gentoo_setup() {
-    echo "no action needed for ddns"
-}
+gentoo_setup() { log_error 'no action needed for ddns'; }
 
-suse_setup() {
-    echo "untested for suse"
-}
+suse_setup() { log_error 'untested for suse'; }
 
 # Main
-get_os_type $TARGET
+get_os_type
 
-if [ "${NIC_COUNT}" -gt 0 -a -n "${OS_TYPE}" ] ; then
-    ${OS_TYPE}_setup
+if test $NIC_COUNT -gt 0 && test -n "$OS_TYPE"; then
+    "${OS_TYPE}_setup"
 else
-    log_error "Unsupported OS_TYPE"
+    log_error 'Unsupported OS_TYPE'
 fi
-
-exit 0

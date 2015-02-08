@@ -22,100 +22,96 @@ set -e
 . ./common.sh
 debug set -x
 
-if [ "${IMAGE_TYPE}" = 'qemu' ]; then
+if test 'qemu' = "$IMAGE_TYPE"; then
 
     part_table() {
-        local action="$1" # set, get
+        _action="$1" # set, get
         # sfdisk -d seems to always output in 512-byte sectors regardless of -uX
         # (using -uS here anyway in case someone else's sfdisk has a different default)
-        if [ 'set' = "$action" ]; then
-            ${SFDISK} -L -uS ${BLOCKDEV} 2>/dev/null
+        if test 'set' = "$_action"; then
+            "$SFDISK" -L -uS "$BLOCKDEV" 2>/dev/null
         else
-            ${SFDISK} -L -uS -d ${BLOCKDEV} 2>/dev/null
+            "$SFDISK" -L -uS -d "$BLOCKDEV" 2>/dev/null
         fi
     }
 
     get_part_sizes() {
-        local part_num="$1"
+        _part_num="$1"
         part_table get | \
             sed -n -e '1,/^$/ b; p' | \
             sed -e "$(
-                test -z "$root_part_num" || printf '%d q; ' `expr $part_num + 1`
+                test -z "$root_part_num" || printf '%d q; ' `expr $_part_num + 1`
             )"'s/^.*size= *\([0-9]\+\),.*$/\1/' | \
             tr '\n' ' '
     }
 
     part_size() {
-        local action="$1" # reset, set, get
-        local part_num="$2"
-        if [ 'set' = "$action" ]; then
-            local value="$3"
-        else
-            local value=
-        fi
+        _action="$1" # reset, set, get
+        _part_num="$2"
+        _value=''
+        ! test 'set' = "$_action" || _value="$3"
         part_table get | \
             sed -n -e '1,/^$/ b; p' | \
-            if [ 'get' = "$action" ]; then
-                sed -n -e "${part_num}"'! b; s/^.*size= *\([0-9]\+\),.*$/\1/; p; q'
+            if test 'get' = "$_action"; then
+                sed -n -e "$_part_num"'! b; s/^.*size= *\([0-9]\+\),.*$/\1/; p; q'
             else
-                sed -e "${part_num}"'! b; s/size= *[0-9]\+,/size=,'"${value}/" | \
+                sed -e "$_part_num"'! b; s/size= *[0-9]\+,/size=,'"$_value"'/' | \
                     part_table set
             fi
     }
 
     # Set disk based on type of hypervisor
-    disk=""
-    if [ "${HYPERVISOR}" = "kvm" ] ; then
-        disk="vda"
+    if test 'kvm' = "$HYPERVISOR"; then
+        disk='vda'
     else
-        disk="xda"
+        disk='xda'
     fi
 
     # Get destination disk size in 512-byte sectors
-    device_size=`${BLOCKDEV_CMD} --getsz ${BLOCKDEV}`
+    device_size="`"$BLOCKDEV_CMD" --getsz "$BLOCKDEV"`"
 
     # Get list of assigned partition sizes in table
     part_sizes="`get_part_sizes`"
 
     # Calculate total size used by partitions
     used_size=0
-    for part_size in ${part_sizes}; do
-        used_size=`expr ${used_size} + ${part_size}`
+    for _part_size in $part_sizes; do
+        used_size="`expr $used_size + $_part_size`"
     done
 
     # Abort if device too small
-    if [ ${device_size} -lt ${used_size} ]; then
-        printf 'Device size (%d sectors) is less than size used by partitions (%d sectors). Aborting.\n' "${device_size}" "${used_size}" >&2
+    if test $device_size -lt $used_size; then
+        printf 'Device size (%d sectors) is less than size used by partitions (%d sectors). Aborting.\n' "$device_size" "$used_size" >&2
         cleanup
         trap - EXIT
         exit 1
     fi
 
     # If device too big
-    if [ ${device_size} -gt ${used_size} ]; then
+    if test $device_size -gt $used_size; then
 
         # Get root (final) partition number
-        if [ "${SWAP}" = "yes" ] && [ -z "${KERNEL_PATH}" ] ; then
+        if test 'yes' = "$SWAP" && test -z "$KERNEL_PATH"; then
             part_num=3
-        elif [ "${SWAP}" = "no" ] && [ -z "${KERNEL_PATH}" ] || [ "${SWAP}" = "yes" ] && [ -n "${KERNEL_PATH}" ] ; then
+        elif test 'no' = "$SWAP" && test -z "$KERNEL_PATH" || test 'yes' = "$SWAP" && test -n "$KERNEL_PATH"; then
             part_num=2
-        elif [ "${SWAP}" = "no" ] && [ -n "${KERNEL_PATH}" ] ; then
+        elif test 'no' = "$SWAP" && test -n "$KERNEL_PATH"; then
             part_num=1
         fi
 
         # Expand (maximise) final partition
         part_size reset $part_num
 
-        filesystem_dev=$(map_disk0 ${BLOCKDEV})
-        CLEANUP+=("unmap_disk0 ${BLOCKDEV}")
-        ROOT_DEV=$(map_partition $filesystem_dev root)
+        filesystem_dev="$(map_disk0)"
+        CLEANUP+=('unmap_disk0')
+        ROOT_DEV="$(map_partition "$filesystem_dev" 'root')"
 
         # Expand filesystem on final partition
         #TODO: equivalent commandlines for btrfs, xfs, zfs, ntfs, etc...
-        case `${BLKID} -p -u filesystem -s TYPE -o value ${ROOT_DEV}` in
+        case "`"$BLKID" -p -u filesystem -s TYPE -o value "$ROOT_DEV"`" in
             ext2|ext3|ext4)
-                resize2fs -f ${ROOT_DEV} >/dev/null 2>&1
-                e2fsck -f -n ${ROOT_DEV} >/dev/null 2>&1
+                resize2fs -f "$ROOT_DEV" >/dev/null 2>&1
+                e2fsck -f -n "$ROOT_DEV" >/dev/null 2>&1
                 ;;
         esac
 
@@ -124,4 +120,3 @@ fi
 
 cleanup
 trap - EXIT
-exit 0

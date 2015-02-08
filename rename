@@ -21,83 +21,85 @@ set -e
 . ./common.sh
 debug set -x
 
-if [ "${NOMOUNT}" = "yes" ] ; then
-    # do nothing if NOMOUNT is enabled
-    exit 0
-fi
+! test 'yes' = "$NOMOUNT" || exit 0
 
-TARGET=`mktemp -d` || exit 1
-CLEANUP+=("rmdir $TARGET")
+TARGET="`mktemp -d`"
+CLEANUP+=("rmdir \"$TARGET\"")
 
 # If the target device is not a real block device we'll first losetup it.
 # This is needed for file disks.
-if [ ! -b $blockdev ]; then
-  ORIGINAL_BLOCKDEV=$blockdev
-  blockdev=$($LOSETUP -sf $blockdev)
-  CLEANUP+=("$LOSETUP -d $blockdev")
+if ! test -b "$BLOCKDEV"; then
+    OLD_BLOCKDEV="$BLOCKDEV"
+    BLOCKDEV="$("$LOSETUP" -sf "$BLOCKDEV")"
+    CLEANUP+=("\"$LOSETUP\" -d \"$BLOCKDEV\"")
 fi
 
-filesystem_dev=$(map_disk0 $blockdev)
-CLEANUP+=("unmap_disk0 $blockdev")
-root_dev=$(map_partition $filesystem_dev root)
-boot_dev=$(map_partition $filesystem_dev boot)
+filesystem_dev="$(map_disk0)"
+CLEANUP+=('unmap_disk0')
+root_dev="$(map_partition "$filesystem_dev" root)"
+boot_dev="$(map_partition "$filesystem_dev" boot)"
 
-mount_disk0 $TARGET
-get_os_type $TARGET
+mount_disk0
+get_os_type
 
-case "${OS_TYPE}" in
+case "$OS_TYPE" in
     debian)
         HNAME="${TARGET}/etc/hostname"
-        OLD_HNAME="$(cat $HNAME)"
+        OLD_HNAME="$(cat "$HNAME")"
         ;;
     redhat)
         HNAME="${TARGET}/etc/sysconfig/network"
-        OLD_HNAME="$(grep HOSTNAME ${HNAME} | \
-            sed -e 's/HOSTNAME=//' | \
-            sed -e s/\"//g)"
+        OLD_HNAME="$(
+            grep 'HOSTNAME' "$HNAME" | \
+                sed -e 's/HOSTNAME=//' | \
+                sed -e 's/"//g'
+        )"
         ;;
     gentoo)
         HNAME="${TARGET}/etc/conf.d/hostname"
         # baselayout-2.x support
-        if [ -d ${TARGET}/usr/share/openrc ] ; then
-            OLD_HNAME="$(grep hostname ${HNAME} | \
-                sed -e 's/hostname=//' | \
-                sed -e s/\"//g)"
+        if test -d "${TARGET}/usr/share/openrc"; then
+            OLD_HNAME="$(
+                grep 'hostname' "$HNAME" | \
+                    sed -e 's/hostname=//' | \
+                    sed -e 's/"//g'
+            )"
         else
-            OLD_HNAME="$(grep HOSTNAME ${HNAME} | \
-                sed -e 's/HOSTNAME=//' | \
-                sed -e s/\"//g)"
+            OLD_HNAME="$(
+                grep 'HOSTNAME' "$HNAME" | \
+                    sed -e 's/HOSTNAME=//' | \
+                    sed -e 's/"//g'
+            )"
         fi
         ;;
     suse)
         HNAME="${TARGET}/etc/HOSTNAME"
-        OLD_HNAME="$(cat $HNAME)"
+        OLD_HNAME="$(cat "$HNAME")"
         ;;
 esac
 
-if [ "$OLD_HNAME" = "$old_name" \
-        -o "${OLD_HNAME}.$(echo $old_name | cut -d . -f 2,3)" \
-        = "$old_name" ] ; then
-    case "${OS_TYPE}" in
+if test "x$OLD_HNAME" = "x$old_name" || \
+    test "x${OLD_HNAME}.`printf '%s' "$old_name" | cut -d. -f2,3`" = "x$old_name"; then
+    case "$OS_TYPE" in
         debian|suse)
-            echo $instance > $HNAME
+            printf '%s\n' "$instance" >"$HNAME"
             ;;
         redhat)
-            sed -ie "s/HOSTNAME=${OLD_HNAME}/HOSTNAME=${instance}/" $HNAME
+            sed --follow-symlinks -i -e 's/HOSTNAME='"$OLD_HNAME"'/HOSTNAME='"$instance"'/' "$HNAME"
             ;;
         gentoo)
-            if [ -d ${TARGET}/usr/share/openrc ] ; then
-                sed -ie "s/hostname.*/hostname=\"${instance}\"/" $HNAME
+            if test -d "${TARGET}/usr/share/openrc"; then
+                sed --follow-symlinks -i -e 's/hostname.*/hostname="'"$instance"'"/' "$HNAME"
             else
-                sed -ie "s/HOSTNAME.*/HOSTNAME=\"${instance}\"/" $HNAME
+                sed --follow-symlinks -i -e 's/HOSTNAME.*/HOSTNAME="'"$instance"'"/' "$HNAME"
             fi
             ;;
     esac
 
-    if [ -x ${CUSTOMIZE_DIR}/zz_ddns ] ; then
-        TARGET=$TARGET
+    if test -x "${CUSTOMIZE_DIR}/zz_ddns"; then
+        TARGET="$TARGET"
         export TARGET
-        ${CUSTOMIZE_DIR}/zz_ddns -r
+        "${CUSTOMIZE_DIR}/zz_ddns" -r
     fi
 else
     log_error "Cannot rename from $old_name to $instance:"
@@ -108,5 +110,3 @@ fi
 # execute cleanups
 cleanup
 trap - EXIT
-
-exit 0

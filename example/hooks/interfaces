@@ -24,42 +24,33 @@ set -e
 . ./common.sh
 debug set -x
 
-FQDN="${INSTANCE_NAME}"
-SHORT_NAME="$(echo ${INSTANCE_NAME} | cut -d . -f 1)"
-STATIC=""
+FQDN="$INSTANCE_NAME"
+SHORT_NAME="$(printf '%s' "$INSTANCE_NAME" | cut -d. -f1)"
+STATIC=''
 
-if [ -z "${TARGET}" -o ! -d "${TARGET}" ] ; then
-    log_error "Missing target directory"
-    exit 1
-fi
+test -d "$TARGET" || { log_error 'Missing target directory'; exit 1; }
 
-if [ -z "${NIC_COUNT}" ] ; then
-    log_error "Missing NIC_COUNT"
-    exit 1
-fi
+test -n "$NIC_COUNT" || { log_error 'Missing NIC_COUNT'; exit 1; }
 
-if [ -f "${NETWORKS_DIR}/instances/${FQDN}" ] ; then
-    STATIC="yes"
-    source ${NETWORKS_DIR}/instances/${FQDN}
-    if [ -f "${NETWORKS_DIR}/subnets/${SUBNET}" ] ; then
-        source ${NETWORKS_DIR}/subnets/${SUBNET}
-    else
-        echo "No subnet file for subnet ${SUBNET}!"
-        exit 1
-    fi
+if test -f "${NETWORKS_DIR}/instances/$FQDN'; then
+    STATIC='yes'
+    . "${NETWORKS_DIR}/instances/$FQDN"
+    test -f "${NETWORKS_DIR}/subnets/$SUBNET" || { log_error "No subnet file for subnet ${SUBNET}!"; exit 1; }
+    . "${NETWORKS_DIR}/subnets/$SUBNET"
 fi
 
 resolvconf() {
-    nl=$'\n'
-    if [ -n "${DNS_SERVERS}" ] && [ -n "${DNS_SEARCH}" ] && [ -n "${DNS_DOMAIN}" ]; then
-        for server in $DNS_SERVERS ; do
-            nameservers="nameserver ${server}${nl}${nameservers}"
+    _nl='
+'
+    if test -n "$DNS_SERVERS" && test -n "$DNS_SEARCH" && test -n "$DNS_DOMAIN"; then
+        for _server in $DNS_SERVERS; do
+            nameservers="nameserver ${_server}${_nl}$nameservers"
         done
 
-        cat > ${TARGET}/etc/resolv.conf << EOF
-${nameservers}
-domain ${DNS_DOMAIN}
-search ${DNS_SEARCH}
+        cat >"${TARGET}/etc/resolv.conf" <<EOF
+$nameservers
+domain $DNS_DOMAIN
+search $DNS_SEARCH
 EOF
     fi
 }
@@ -67,33 +58,30 @@ EOF
 # Functions
 
 systemd_setup() {
-    host_name="$1"
+    _host_name="$1"
     # Update systemd's view of hostname
-    echo "${host_name}" >${TARGET}/etc/hostname
+    printf '%s' "$_host_name" >"${TARGET}/etc/hostname"
     # Clear previous machine-id
-    echo -n >${TARGET}/etc/machine-id
+    cat /dev/null >"${TARGET}/etc/machine-id"
     # Bind mount /dev to get temporary use of /dev/urandom
-    mount --bind /dev ${TARGET}/dev
-    CLEANUP+=("umount ${TARGET}/dev")
+    mount --bind '/dev' "${TARGET}/dev"
+    CLEANUP+=("umount \"${TARGET}/dev\"")
     # Set new machine-id (this works because it writes direct to file)
-    chroot ${TARGET} systemd-machine-id-setup >/dev/null 2>&1
-    umount ${TARGET}/dev
+    chroot "$TARGET" 'systemd-machine-id-setup' >/dev/null 2>&1
+    umount "${TARGET}/dev"
     pop_cleanup
     # Update machine-info
-    cat <<EOF >${TARGET}/etc/machine-info
-PRETTY_HOSTNAME="${host_name}"
+    cat <<EOF >"${TARGET}/etc/machine-info"
+PRETTY_HOSTNAME="$_host_name"
 CHASSIS="vm"
 EOF
 }
 
 debian_setup() {
-    if [ ! -d "${TARGET}/etc/network" ] ; then
-        log_error "Missing target network directory"
-        exit 1
-    fi
+    test -d "${TARGET}/etc/network" || { log_error 'Missing target network directory'; exit 1; }
 
-    if [ -z "${STATIC}" ] ; then
-        cat > ${TARGET}/etc/network/interfaces << EOF
+    if test -z "$STATIC"; then
+        cat >"${TARGET}/etc/network/interfaces" <<EOF
 # This file describes the network interfaces available on your system
 # and how to activate them. For more information, see interfaces(5).
 
@@ -105,7 +93,7 @@ iface eth0 inet dhcp
 
 EOF
     else
-        cat > ${TARGET}/etc/network/interfaces << EOF
+        cat >"${TARGET}/etc/network/interfaces" <<EOF
 # This file describes the network interfaces available on your system
 # and how to activate them. For more information, see interfaces(5).
 
@@ -114,63 +102,58 @@ iface lo inet loopback
 
 auto eth0
 iface eth0 inet static
-    address ${ADDRESS}
-    netmask ${NETMASK}
-    gateway ${GATEWAY}
+    address $ADDRESS
+    netmask $NETMASK
+    gateway $GATEWAY
 EOF
-        if [ -n "${DNS_SERVERS}" ] && [ -n "${DNS_SEARCH}" ] && [ -n "${DNS_DOMAIN}" ]; then
-            cat >> ${TARGET}/etc/network/interfaces << EOF
-    dns-nameservers ${DNS_SERVERS}
-    dns-domain ${DNS_DOMAIN}
-    dns-search ${DNS_SEARCH}
+        if test -n "$DNS_SERVERS" && test -n "$DNS_SEARCH" && test -n "$DNS_DOMAIN"; then
+            cat >>"${TARGET}/etc/network/interfaces" << EOF
+    dns-nameservers $DNS_SERVERS
+    dns-domain $DNS_DOMAIN
+    dns-search $DNS_SEARCH
 
 EOF
         fi
     fi
 
-    if [ -n "${FQDN}" ] ; then
-        if [ -d ${TARGET}/etc/systemd ]; then
-            systemd_setup "${SHORT_NAME}"
+    if test -n "$FQDN"; then
+        if test -d "${TARGET}/etc/systemd"; then
+            systemd_setup "$SHORT_NAME"
         else
-            echo "${SHORT_NAME}" > ${TARGET}/etc/hostname
+            printf '%s\n' "$SHORT_NAME" >"${TARGET}/etc/hostname"
         fi
     fi
 }
 
 redhat_setup() {
-    if [ ! -d "${TARGET}/etc/sysconfig/network-scripts" ] ; then
-        log_error "Missing target network directory"
-        exit 1
-    fi
-    if [ -z "${STATIC}" ] ; then
-        cat > ${TARGET}/etc/sysconfig/network-scripts/ifcfg-eth0 << EOF
+    test -d "${TARGET}/etc/sysconfig/network-scripts" || { log_error 'Missing target network directory'; exit 1; }
+    if test -z "$STATIC"; then
+        cat >"${TARGET}/etc/sysconfig/network-scripts/ifcfg-eth0" <<EOF
 DEVICE=eth0
 BOOTPROTO=dhcp
 ONBOOT=yes
 EOF
     else
-        cat > ${TARGET}/etc/sysconfig/network-scripts/ifcfg-eth0 << EOF
+        cat >"${TARGET}/etc/sysconfig/network-scripts/ifcfg-eth0" <<EOF
 DEVICE=eth0
 BOOTPROTO=static
-IPADDR=${ADDRESS}
-NETMASK=${NETMASK}
+IPADDR=$ADDRESS
+NETMASK=$NETMASK
 ONBOOT=yes
 EOF
     fi
 
-    if [ -n "${FQDN}" ] ; then
-        cat > ${TARGET}/etc/sysconfig/network << EOF
+    if test -n "$FQDN"; then
+        cat >"${TARGET}/etc/sysconfig/network" << EOF
 NETWORKING=yes
-HOSTNAME=${FQDN}
-GATEWAY=${GATEWAY}
+HOSTNAME=$FQDN
+GATEWAY=$GATEWAY
 EOF
-        if [ -d ${TARGET}/etc/systemd ]; then
-            systemd_setup "${FQDN}"
-        fi
+        ! test -d "${TARGET}/etc/systemd" || systemd_setup "$FQDN"
     else
-        cat > ${TARGET}/etc/sysconfig/network << EOF
+        cat >"${TARGET}/etc/sysconfig/network" <<EOF
 NETWORKING=yes
-GATEWAY=${GATEWAY}
+GATEWAY=$GATEWAY
 EOF
     fi
 
@@ -178,55 +161,49 @@ EOF
 }
 
 gentoo_setup() {
-    if [ ! -f "${TARGET}/etc/conf.d/net" ] ; then
-        log_error "Missing target network file"
-        exit 1
-    fi
-    if [ -z "${STATIC}" ] ; then
-        cat > ${TARGET}/etc/conf.d/net << EOF
-config_eth0=( "dhcp" )
+    test -f "${TARGET}/etc/conf.d/net" || { log_error 'Missing target network file'; exit 1; }
+    if test -z "$STATIC"; then
+        cat >"${TARGET}/etc/conf.d/net" <<EOF
+config_eth0=( 'dhcp' )
 EOF
     else
-        cat > ${TARGET}/etc/conf.d/net << EOF
-config_eth0=( "${ADDRESS} netmask ${NETMASK}" )
-routes_eth0=( "default gw ${GATEWAY}" )
+        cat >"${TARGET}/etc/conf.d/net" <<EOF
+config_eth0=( "$ADDRESS netmask $NETMASK" )
+routes_eth0=( "default gw $GATEWAY" )
 EOF
     fi
 
     resolvconf
 
-    chroot ${TARGET} ln -sf /etc/init.d/net.lo /etc/init.d/net.eth0
-    chroot ${TARGET} rc-update add net.eth0 default
+    chroot "$TARGET" ln -sf /etc/init.d/net.lo /etc/init.d/net.eth0
+    chroot "$TARGET" rc-update add net.eth0 default
 
-    if [ -n "${FQDN}" ] ; then
+    if test -n "$FQDN"; then
         # baselayout-2.x
-        if [ -d "${TARGET}/usr/share/openrc/" ] ; then
-            cat > ${TARGET}/etc/conf.d/hostname << EOF
-hostname="${SHORT_NAME}"
+        if test -d "${TARGET}/usr/share/openrc/"; then
+            cat >"${TARGET}/etc/conf.d/hostname" <<EOF
+hostname="$SHORT_NAME"
 EOF
         else
-            cat > ${TARGET}/etc/conf.d/hostname << EOF
-HOSTNAME="${SHORT_NAME}"
+            cat >"${TARGET}/etc/conf.d/hostname" <<EOF
+HOSTNAME="$SHORT_NAME"
 EOF
         fi
     fi
 }
 
 suse_setup() {
-    if [ ! -d ${TARGET}/etc/sysconfig/network ] ; then
-        log_error "Missing target network directory"
-        exit 1
-    fi
-    cat > ${TARGET}/etc/sysconfig/network/ifcfg-eth0 << EOF
+    test -d "${TARGET}/etc/sysconfig/network" || { log_error 'Missing target network directory'; exit 1; }
+    cat >"${TARGET}/etc/sysconfig/network/ifcfg-eth0" <<EOF
 BOOTPROTO='dhcp4'
 STARTMODE='auto'
 NAME='Ethernet Card 0'
 EOF
-    if [ -n "${FQDN}" ] ; then
-        if [ -d ${TARGET}/etc/systemd ]; then
-            systemd_setup "${FQDN}"
+    if test -n "$FQDN"; then
+        if test -d "${TARGET}/etc/systemd"; then
+            systemd_setup "$FQDN"
         else
-            echo "${FQDN}" > ${TARGET}/etc/HOSTNAME
+            printf '%s' "$FQDN" >"${TARGET}/etc/HOSTNAME"
         fi
     fi
 
@@ -234,14 +211,13 @@ EOF
 }
 
 # Main
-get_os_type $TARGET
+get_os_type
 
-if [ "${NIC_COUNT}" -gt 0 -a -n "${OS_TYPE}" ] ; then
+if test "$NIC_COUNT" -gt 0 && test -n "$OS_TYPE"; then
     ${OS_TYPE}_setup
 else
-    log_error "Unsupported OS_TYPE"
+    log_error 'Unsupported OS_TYPE'
 fi
 
 cleanup
 trap - EXIT
-exit 0

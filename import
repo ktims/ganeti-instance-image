@@ -23,68 +23,58 @@ debug set -x
 
 # If the target device is not a real block device we'll first losetup it.
 # This is needed for file disks.
-if [ ! -b $blockdev ]; then
-    ORIGINAL_BLOCKDEV=$blockdev
-    blockdev=$($LOSETUP -sf $blockdev)
-    CLEANUP+=("$LOSETUP -d $blockdev")
+if ! test -b "$BLOCKDEV"; then
+    OLD_BLOCKDEV="$BLOCKDEV"
+    BLOCKDEV="$("$LOSETUP" -sf "$BLOCKDEV")"
+    CLEANUP+=("\"$LOSETUP\" -d \"$BLOCKDEV\"")
 fi
 
-TARGET=`mktemp -d` || exit 1
-CLEANUP+=("rmdir $TARGET")
-DUMPDIR=`mktemp -d` || exit 1
-CLEANUP+=("rm -rf $DUMPDIR")
+TARGET="`mktemp -d`"
+CLEANUP+=("rmdir \"$TARGET\"")
+DUMPDIR="`mktemp -d`"
+CLEANUP+=("rm -rf \"$DUMPDIR\"")
 
-if [ ! "${NOMOUNT}" = "yes" ] ; then
-    format_disk0 $blockdev
-    filesystem_dev=$(map_disk0 $blockdev)
-    CLEANUP+=("unmap_disk0 $blockdev")
-    root_dev=$(map_partition $filesystem_dev root)
-    boot_dev=$(map_partition $filesystem_dev boot)
-    swap_dev=$(map_partition $filesystem_dev swap)
+if ! test 'yes' = "$NOMOUNT"; then
+    format_disk0 "$BLOCKDEV"
+    filesystem_dev="$(map_disk0)"
+    CLEANUP+=('unmap_disk0')
+    root_dev="$(map_partition "$filesystem_dev" root)"
+    boot_dev="$(map_partition "$filesystem_dev" boot)"
+    swap_dev="$(map_partition "$filesystem_dev" swap)"
 
     mkfs_disk0
-    root_uuid="$($VOL_ID $root_dev)"
-    [ -n "$boot_dev" ] && boot_uuid="$($VOL_ID $boot_dev)"
-    [ -n "$swap_dev" ] && swap_uuid="$($VOL_ID $swap_dev)"
+    root_uuid="$(eval "$VOL_ID \"$root_dev\"")"
+    test -n "$boot_dev" && boot_uuid="$(eval "$VOL_ID \"$boot_dev\"")"
+    test -n "$swap_dev" && swap_uuid="$(eval "$VOL_ID \"$swap_dev\"")"
 
-    mount_disk0 $TARGET
+    mount_disk0
 fi
 
 # import dumps from tar file
-( cd $DUMPDIR; tar -xf - )
+( cd "$DUMPDIR"; tar -xf - )
 
-if [ "${NOMOUNT}" = "yes" ] ; then
-    ( $QEMU_IMG convert ${DUMPDIR}/disk.img -O host_device ${blockdev} )
+if test 'yes' = "$NOMOUNT"; then
+    "$QEMU_IMG" convert "${DUMPDIR}/disk.img" -O 'host_device' "$BLOCKDEV"
 else
     # clean up any previous restore runs
     rm -rf /tmp/rst*
-    ( cd $TARGET ; restore -r -y -f ${DUMPDIR}/root.dump )
-    if [ -n "${boot_dev}" ] ; then
-        ( cd ${TARGET}/boot ; restore -r -y -f ${DUMPDIR}/boot.dump )
-    fi
+    ( cd "$TARGET"; restore -r -y -f "${DUMPDIR}/root.dump" )
+    test -z "$boot_dev" || ( cd "${TARGET}/boot"; restore -r -y -f "${DUMPDIR}/boot.dump" )
 
-    setup_fstab $TARGET
+    setup_fstab
 
-    if [ "${INSTANCE_HV_serial_console}" = "True" ] ; then
-        setup_console $TARGET
-    fi
+    ! test 'True' = "$INSTANCE_HV_serial_console" || setup_console
 
-    rm -f $TARGET/etc/udev/rules.d/z*_persistent-net.rules
+    rm -f "${TARGET}/etc/udev/rules.d/z"*"_persistent-net.rules"
 
-    if [ -n "$CUSTOMIZE_DIR" -a -d "$CUSTOMIZE_DIR" -a -x "$CUSTOMIZE_DIR/grub" ] ; then
-        TARGET=$TARGET
-        BLOCKDEV=$blockdev
-        ROOT_DEV=$root_dev
-        BOOT_DEV=$boot_dev
-        IMPORT_SCRIPT="1"
-        export TARGET SUITE BLOCKDEV ROOT_DEV BOOT_DEV IMPORT_SCRIPT
-        # Install grub since we're not deploying via qemu-img
-        ${CUSTOMIZE_DIR}/grub
+    if test -x "${CUSTOMIZE_DIR}/grub"; then
+        ROOT_DEV="$root_dev"; BOOT_DEV="$boot_dev"; IMPORT_SCRIPT=1
+        export TARGET SUITE BLOCKDEV ROOT_DEV BOOT_DEV IMG_SSH_KEY_URL IMPORT_SCRIPT
+        # Install grub as we're not deploying via qcow
+        "${CUSTOMIZE_DIR}/grub"
     fi
 fi
 
 # execute cleanups
 cleanup
 trap - EXIT
-
-exit 0

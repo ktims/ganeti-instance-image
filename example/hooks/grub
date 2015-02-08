@@ -20,23 +20,19 @@
 # This is an example script that configures, grub after installation. This
 # script assumes that grub has been installed onto the image already and a
 # working grub.conf exists. This is only enabled if using the tarball image
-# type. 
+# type.
 
 set -e
 . ./common.sh
 debug set -x
 
-if [ -z "${TARGET}" -o ! -d "${TARGET}" ] ; then
-    log_error "Missing target directory"
-    exit 1
-fi
+test -d "$TARGET" || { log_error 'Missing target directory'; exit 1; }
 
 # Set disk based on type of hypervisor
-disk=""
-if [ "${HYPERVISOR}" = "kvm" ] ; then
-  disk="vda"
+if test 'kvm' = "$HYPERVISOR"; then
+    disk='vda'
 else
-  disk="xda"
+    disk='xda'
 fi
 
 if test -s "${TARGET}/boot/grub2/grub.cfg"; then
@@ -44,129 +40,123 @@ if test -s "${TARGET}/boot/grub2/grub.cfg"; then
 else
     boot_dir_internal='/boot/grub'
 fi
-boot_dir="${TARGET}${boot_dir_internal}"
+boot_dir="${TARGET}$boot_dir_internal"
 
 setup_disk_devs() {
-    root_part="${ROOT_DEV/*-/}"
-    boot_part="${BOOT_DEV/*-/}"
+    root_part="${ROOT_DEV##*-}"
+    boot_part="${BOOT_DEV##*-}"
 
-    mknod ${TARGET}/dev/${disk} b $(stat -L -c "0x%t 0x%T" $BLOCKDEV)
-    CLEANUP+=("rm -f ${TARGET}/dev/$disk")
+    mknod "${TARGET}/dev/$disk" b `stat -L -c '0x%t 0x%T' "$BLOCKDEV"`
+    CLEANUP+=("rm -f \"${TARGET}/dev/$disk\"")
 
-    mknod ${TARGET}/dev/${disk}${root_part} b $(stat -L -c "0x%t 0x%T" $ROOT_DEV)
-    CLEANUP+=("rm -f ${TARGET}/dev/${disk}${root_part}")
+    mknod "${TARGET}/dev/${disk}$root_part" b `stat -L -c '0x%t 0x%T' "$ROOT_DEV"`
+    CLEANUP+=("rm -f \"${TARGET}/dev/${disk}$root_part\"")
 
-    if [ -n "$BOOT_DEV" ] ; then
-        mknod ${TARGET}/dev/${disk}${boot_part} b $(stat -L -c "0x%t 0x%T" $BOOT_DEV)
-        CLEANUP+=("rm -f ${TARGET}/dev/${disk}${boot_part}")
+    if test -n "$BOOT_DEV"; then
+        mknod "${TARGET}/dev/${disk}$boot_part" b `stat -L -c '0x%t 0x%T' "$BOOT_DEV"`
+        CLEANUP+=("rm -f \"${TARGET}/dev/${disk}$boot_part\"")
     fi
 
     # setup minimal proc environment for grub2
-    $MKDIR_P ${TARGET}/proc/
-    cat > ${TARGET}/proc/mounts <<EOF
-/dev/${disk}${boot_part} /boot ${FILESYSTEM} rw,relatime,barrier=1,data=ordered 0 0
-/dev/${disk}${root_part} / ${FILESYSTEM} rw,relatime,barrier=1,data=ordered 0 0
+    $MKDIR_P "${TARGET}/proc"
+    cat >"${TARGET}/proc/mounts" <<EOF
+/dev/${disk}$boot_part /boot $FILESYSTEM rw,relatime,barrier=1,data=ordered 0 0
+/dev/${disk}$root_part / $FILESYSTEM rw,relatime,barrier=1,data=ordered 0 0
 EOF
-    CLEANUP+=("rm -r ${TARGET}/proc/mounts")
+    CLEANUP+=("rm -rf \"${TARGET}/proc/mounts\"")
 
-    cat > ${TARGET}/proc/devices <<EOF
+    cat >"${TARGET}/proc/devices" <<EOF
 Block devices:
 251 virtblk
 252 device-mapper
 EOF
-    CLEANUP+=("rm -r ${TARGET}/proc/devices")
-    cat > ${TARGET}/proc/misc << EOF
- 60 device-mapper
+    CLEANUP+=("rm -rf \"${TARGET}/proc/devices\"")
+    cat >"${TARGET}/proc/misc" <<EOF
+60 device-mapper
 EOF
-    CLEANUP+=("rm -r ${TARGET}/proc/misc")
+    CLEANUP+=("rm -rf \"${TARGET}/proc/misc\"")
 }
 
 add_devicemap() {
-    cat > "${boot_dir}/device.map" <<EOF
-(hd0) /dev/${disk}
+    cat >"${boot_dir}/device.map" <<EOF
+(hd0) /dev/$disk
 EOF
 }
 
-if [ "${IMAGE_TYPE}" != "qemu" ] && \
-   [ -z "${INSTANCE_HV_kernel_path}" -o \
-    "${INSTANCE_HV_kernel_path}" = "/bin/false" -o \
-    "${IMPORT_SCRIPT}" = "1" ] ; then
+if ! test 'qemu' = "$IMAGE_TYPE" && \
+    {
+        test -z "$INSTANCE_HV_kernel_path" || \
+            test '/bin/false' = "$INSTANCE_HV_kernel_path" || \
+            test 1 = "$IMPORT_SCRIPT"
+    }; then
     setup_disk_devs
     add_devicemap
 
-    if [ -e "${boot_dir}/menu.lst" ] ; then
-        grub="$(chroot ${TARGET} which grub)"
+    if test -e "${boot_dir}/menu.lst"; then
+        grub="$(chroot "$TARGET" which grub)"
         # install grub to the block device
-        chroot ${TARGET} ${grub} --batch --no-floppy \
-            --device-map=${boot_dir_internal}/device.map > /dev/null <<EOF
+        chroot "$TARGET" "$grub" --batch --no-floppy \
+            --device-map="${boot_dir_internal}/device.map" >/dev/null <<EOF
 root (hd0,0)
 setup (hd0)
 quit
 EOF
         # check to see if grub is using UUID's and replace if so
-        if [ -n "$(grep 'root=UUID' ${boot_dir}/menu.lst)" ] ; then
-            root_uuid="$($VOL_ID $ROOT_DEV)"
-            sed --follow-symlinks -ie "s/\(root=UUID=\)\([a-z0-9-]*\)/\1${root_uuid}/g" \
-                ${boot_dir}/menu.lst
+        if test -n "$(grep 'root=UUID' "${boot_dir}/menu.lst")"; then
+            root_uuid="$(eval "$VOL_ID \"$ROOT_DEV\"")"
+            sed --follow-symlinks -i -e 's/\(root=UUID=\)\([a-z0-9-]*\)/\1'"$root_uuid"'/g' "${boot_dir}/menu.lst"
         fi
         # additional kernel arguments for the instance
-        if [ -n "${KERNEL_ARGS}" ] ; then
-            sed --follow-symlinks -ie "s/\(.*kernel.*\)/\1 ${KERNEL_ARGS}/g" \
-                ${boot_dir}/menu.lst
-        fi
-    elif [ -e "${boot_dir}/grub.cfg" -a -e "${TARGET}/etc/default/grub" ] ; then
-        echo "grub2 support is partially supported"
-        echo "please run update-grub after the instance is online"
+        test -z "$KERNEL_ARGS" || \
+            sed --follow-symlinks -i -e 's/\(.*kernel.*\)/\1 '"$KERNEL_ARGS"'/g' "${boot_dir}/menu.lst"
+    elif test -e "${boot_dir}/grub.cfg" && test -e "${TARGET}/etc/default/grub"; then
+        printf 'grub2 support is partially supported\n'
+        printf 'please run update-grub after the instance is online\n'
 
         grub_setup="$(
-            chroot ${TARGET} /bin/sh -c 'which grub-setup || which grub-bios-setup || which grub2-bios-setup'
+            chroot "$TARGET" /bin/sh -c 'which grub-setup || which grub-bios-setup || which grub2-bios-setup'
         )" 2>/dev/null
         # check to see if grub is using UUID's and replace if so
-        if [ -n "$(grep 'root=UUID' ${boot_dir}/grub.cfg)" ] ; then
-            root_uuid="$($VOL_ID $ROOT_DEV)"
-            sed --follow-symlinks -ie "s/\(root=UUID=\)\([a-z0-9-]*\)/\1${root_uuid}/g" \
-                ${boot_dir}/grub.cfg
+        if test -n "$(grep 'root=UUID' "${boot_dir}/grub.cfg")"; then
+            root_uuid="$(eval "$VOL_ID \"$ROOT_DEV\"")"
+            sed --follow-symlinks -i -e 's/\(root=UUID=\)\([a-z0-9-]*\)/\1'"$root_uuid"'/g' \
+                "${boot_dir}/grub.cfg"
         fi
         # additional kernel arguments for the instance
-        if [ -n "${KERNEL_ARGS}" ] ; then
-            sed -ie "s/.*GRUB_CMDLINE_LINUX=\"\(.*\)\"/GRUB_CMDLINE_LINUX=\"\1 ${KERNEL_ARGS}\"/" \
-                ${TARGET}/etc/default/grub
-        fi
+        test -z "$KERNEL_ARGS" || \
+            sed --follow-symlinks -i -e 's/.*GRUB_CMDLINE_LINUX="\(.*\)"/GRUB_CMDLINE_LINUX="\1 '"$KERNEL_ARGS"'/' \
+                "${TARGET}/etc/default/grub"
         # show the menu countdown in case we want to boot to a different kernel
-        sed -ie 's/.*GRUB_HIDDEN_TIMEOUT=.*/GRUB_HIDDEN_TIMEOUT=5/' ${TARGET}/etc/default/grub
-        sed -ie 's/.*GRUB_HIDDEN_TIMEOUT_QUIET=.*/GRUB_HIDDEN_TIMEOUT_QUIET=false/' ${TARGET}/etc/default/grub
+        sed --follow-symlinks -i -e 's/.*GRUB_HIDDEN_TIMEOUT=.*/GRUB_HIDDEN_TIMEOUT=5/' "${TARGET}/etc/default/grub"
+        sed --follow-symlinks -i -e 's/.*GRUB_HIDDEN_TIMEOUT_QUIET=.*/GRUB_HIDDEN_TIMEOUT_QUIET=false/' "${TARGET}/etc/default/grub"
         # install grub2 MBR
-        chroot ${TARGET} ${grub_setup} --force --device-map=${boot_dir_internal}/device.map \
-            --directory=${boot_dir_internal} --root-device="(hd0,1)" "(hd0)" > /dev/null
+        chroot "$TARGET" "$grub_setup" --force --device-map="${boot_dir_internal}/device.map" \
+            --directory="$boot_dir_internal" --root-device='(hd0,1)' '(hd0)' >/dev/null
     fi
 fi
 
 # setup serial console
-if [ "${INSTANCE_HV_serial_console}" = "True" ] ; then
-    if [ ! -e ${TARGET}/dev/${disk} ] ; then
-        setup_disk_devs
-    fi
-    if [ -e "${boot_dir}/menu.lst" ] ; then
+if test 'True' = "$INSTANCE_HV_serial_console"; then
+    test -e "${TARGET}/dev/$disk" || setup_disk_devs
+    if test -e "${boot_dir}/menu.lst"; then
         # grub 0.x
-        sed --follow-symlinks -ie 's/^default.*/default 0\n\nserial --unit=0\nterminal --timeout=3 console serial/' \
-            ${boot_dir}/menu.lst
-        sed --follow-symlinks -ie 's/\(.*kernel.*\)/\1 console=ttyS0,115200n8/g' \
-            ${boot_dir}/menu.lst
-    elif [ -e "${boot_dir}/grub.cfg" -a -e "${TARGET}/etc/default/grub" ] ; then
+        sed --follow-symlinks -i -e 's/^default.*/default 0\n\nserial --unit=0\nterminal --timeout=3 console serial/' \
+            "${boot_dir}/menu.lst"
+        sed --follow-symlinks -i -e 's/\(.*kernel.*\)/\1 console=ttyS0,115200n8/g' \
+            "${boot_dir}/menu.lst"
+    elif test -e "${boot_dir}/grub.cfg" && test -e "${TARGET}/etc/default/grub"; then
         # grub 2.x
         add_devicemap
-        sed -ie 's/.*GRUB_TERMINAL.*/GRUB_TERMINAL=serial/' ${TARGET}/etc/default/grub
-        sed -ie 's/.*GRUB_CMDLINE_LINUX=\"\(.*\)\"/GRUB_CMDLINE_LINUX=\"\1 console=ttyS0,115200n8\"/' \
-            ${TARGET}/etc/default/grub
-        echo "GRUB_SERIAL_COMMAND=\"serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1\"" \
-            >> ${TARGET}/etc/default/grub
+        sed --follow-symlinks -i -e 's/.*GRUB_TERMINAL.*/GRUB_TERMINAL=serial/' "${TARGET}/etc/default/grub"
+        sed --follow-symlinks -i -e 's/.*GRUB_CMDLINE_LINUX="\(.*\)"/GRUB_CMDLINE_LINUX="\1 console=ttyS0,115200n8"/' \
+            "${TARGET}/etc/default/grub"
+        printf 'GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"\n' \
+            >>"${TARGET}/etc/default/grub"
     else
-        echo "No grub bootloader found, skipping..."
+        log_error 'No grub bootloader found, skipping...'
     fi
 fi
 
 # execute cleanups
 cleanup
 trap - EXIT
-
-exit 0

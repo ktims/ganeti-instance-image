@@ -2,28 +2,26 @@
 set -e
 INSTANCE_NAME="$1"
 
-if [ -z "$INSTANCE_NAME" ] ; then
-    echo "Must provide a node name!"
+if test -z "$INSTANCE_NAME"; then
+    printf 'Must provide a node name!\n'
     exit 1
 fi
 
-info=($(gnt-instance list -o os,hypervisor,disk.count --no-headers --separator=' ' $INSTANCE_NAME))
+info="$(gnt-instance list -o os,hypervisor,disk.count --no-headers --separator=' ' "$INSTANCE_NAME")"
 OS_VARIANT="${info[0]/*+/}"
 HYPERVISOR="${info[1]}"
 DISK_COUNT="${info[2]}"
-OS_API_VERSION="20"
+OS_API_VERSION=20
 
 # do stuff
-output="$(gnt-instance activate-disks $INSTANCE_NAME)"
-CLEANUP+=("gnt-instance deactivate-disks $INSTANCE_NAME")
+output="$(gnt-instance activate-disks "$INSTANCE_NAME")"
+CLEANUP+=("gnt-instance deactivate-disks \"$INSTANCE_NAME\"")
 
 DISK_0_PATH="${output/*disk\/0\:/}"
 
-. @osdir@/@osname@/common.sh
+. "@osdir@/@osname@/common.sh"
 
-if [ -n "$2" ] ; then
-    IMAGE_DIR=$2
-fi
+test -z "$2" || IMAGE_DIR="$2"
 
-echo "Creating qemu-img image from $INSTANCE_NAME to ${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.img"
-$QEMU_IMG convert -O qcow2 $DISK_0_PATH ${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.img
+printf "Creating qemu-img image from %s to %s/%s-%s.img\n' "$INSTANCE_NAME" "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH"
+"$QEMU_IMG" convert -O qcow2 "$DISK_0_PATH" "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.img"

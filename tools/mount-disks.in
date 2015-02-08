@@ -2,33 +2,33 @@
 set -e
 INSTANCE_NAME="$1"
 
-if [ -z "$INSTANCE_NAME" ] ; then
-    echo "Must provide a node name!"
+if test -z "$INSTANCE_NAME"; then
+    printf 'Must provide a node name!\n'
     exit 1
 fi
 
-info=($(gnt-instance list -o os,hypervisor,disk.count --no-headers --separator=' ' $INSTANCE_NAME))
+info="$(gnt-instance list -o os,hypervisor,disk.count --no-headers --separator=' ' "$INSTANCE_NAME")"
 OS_VARIANT="${info[0]/*+/}"
 HYPERVISOR="${info[1]}"
 DISK_COUNT="${info[2]}"
-OS_API_VERSION="20"
+OS_API_VERSION=20
 
 # do stuff
-output="$(gnt-instance activate-disks $INSTANCE_NAME)"
+output="$(gnt-instance activate-disks "$INSTANCE_NAME")"
 
 DISK_0_PATH="`printf '%s' "$output" | sed -n -e '/disk\/0:/! b; s/^.*disk\/0://; p'`"
 
-. @osdir@/@osname@/common.sh
+. "@osdir@/@osname@/common.sh"
 
-filesystem_dev=$(map_disk0 $blockdev)
-root_dev=$(map_partition $filesystem_dev root)
-boot_dev=$(map_partition $filesystem_dev boot)
+filesystem_dev="$(map_disk0)"
+root_dev="$(map_partition "$filesystem_dev" root)"
+boot_dev="$(map_partition "$filesystem_dev" boot)"
 
-target="/tmp/${INSTANCE_NAME}_root"
-${MKDIR_P} $target
+TARGET="/tmp/${INSTANCE_NAME}_root"
+$MKDIR_P "$TARGET"
 
 # mount filesystems
-mount_disk0 $target
-echo "$INSTANCE_NAME is now mounted at $target"
+mount_disk0
+printf '%s is now mounted at %s\n' "$INSTANCE_NAME" "$TARGET"
 
 CLEANUP=( )

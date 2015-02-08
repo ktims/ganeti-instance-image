@@ -8,17 +8,15 @@ set -e
 . ./common.sh
 debug set -x
 
-get_os "$TARGET"
+get_os
 
 umask 077
 
-case $OPERATING_SYSTEM in
-	centos)
-		dd if=/dev/urandom of=${TARGET}/var/lib/systemd/random-seed bs=512 count=1 >/dev/null 2>&1
-		;;
-	debian|ubuntu)
-		dd if=/dev/urandom of=${TARGET}/var/lib/urandom/random-seed bs=512 count=1 >/dev/null 2>&1
-		;;
+case "$OPERATING_SYSTEM" in
+    centos)
+        dd if=/dev/urandom of="${TARGET}/var/lib/systemd/random-seed" bs=512 count=1 >/dev/null 2>&1
+        ;;
+    debian|ubuntu)
+        dd if=/dev/urandom of="${TARGET}/var/lib/urandom/random-seed" bs=512 count=1 >/dev/null 2>&1
+        ;;
 esac
-
-exit 0
