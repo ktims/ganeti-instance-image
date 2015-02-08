@@ -63,12 +63,6 @@ if [ "${IMAGE_TYPE}" = 'qemu' ]; then
             fi
     }
 
-    if which partprobe >/dev/null 2>&1; then
-        PARTPROBE="`which partprobe`"
-    else
-        PARTPROBE="${BLOCKDEV_CMD} --rereadpt"
-    fi
-
     # Set disk based on type of hypervisor
     disk=""
     if [ "${HYPERVISOR}" = "kvm" ] ; then
