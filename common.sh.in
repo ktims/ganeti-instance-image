@@ -106,6 +106,15 @@ $CLEANUP"
     :
 }
 
+losetup_blockdev() {
+    if ! test -b "$BLOCKDEV"; then
+        OLD_BLOCKDEV="$BLOCKDEV"
+        BLOCKDEV="$("$LOSETUP" -sf "$BLOCKDEV")"
+        cleanup push "\"$LOSETUP\" -d \"$BLOCKDEV\""
+        cleanup push "BLOCKDEV=\"$OLD_BLOCKDEV\""
+    fi
+}
+
 get_os_type() {
     test -n "$TARGET" || die 'TARGET is not set in get_os_type\n'
     if test -e "${TARGET}/etc/redhat-release"; then

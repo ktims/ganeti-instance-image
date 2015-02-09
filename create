@@ -62,14 +62,7 @@ if test 'dump' = "$IMAGE_TYPE"; then
 fi
 
 if test 'no' = "$CDINSTALL"; then
-    # If the target device is not a real block device we'll first losetup it.
-    # This is needed for file disks.
-    if ! test -b "$BLOCKDEV"; then
-        OLD_BLOCKDEV="$BLOCKDEV"
-        BLOCKDEV="$("$LOSETUP" -sf "$BLOCKDEV")"
-        cleanup push "\"$LOSETUP\" -d \"$BLOCKDEV\""
-    fi
-
+    losetup_blockdev
     DISK_SIZE="$(expr `"$BLOCKDEV_CMD" --getsize64 "$BLOCKDEV"` / 1048576)"
 
     if test 'yes' = "$SWAP"; then

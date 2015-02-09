@@ -21,14 +21,7 @@ set -e
 . ./common.sh
 debug set -x
 
-# If the target device is not a real block device we'll first losetup it.
-# This is needed for file disks.
-if ! test -b "$BLOCKDEV"; then
-    OLD_BLOCKDEV="$BLOCKDEV"
-    BLOCKDEV="$("$LOSETUP" -sf "$BLOCKDEV")"
-    cleanup push "\"$LOSETUP\" -d \"$BLOCKDEV\""
-fi
-
+losetup_blockdev
 if ! test 'yes' = "$NOMOUNT"; then
     filesystem_dev="$(map_disk0)"
     cleanup push 'unmap_disk0'
