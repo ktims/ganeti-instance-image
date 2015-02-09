@@ -15,7 +15,7 @@ OS_API_VERSION=20
 
 # do stuff
 output="$(gnt-instance activate-disks "$INSTANCE_NAME")"
-CLEANUP+=("gnt-instance deactivate-disks \"$INSTANCE_NAME\"")
+cleanup push "gnt-instance deactivate-disks \"$INSTANCE_NAME\""
 
 DISK_0_PATH="${output/*disk\/0\:/}"
 

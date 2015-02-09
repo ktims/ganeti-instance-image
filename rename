@@ -24,18 +24,18 @@ debug set -x
 ! test 'yes' = "$NOMOUNT" || exit 0
 
 TARGET="`mktemp -d`"
-CLEANUP+=("rmdir \"$TARGET\"")
+cleanup push "rmdir \"$TARGET\""
 
 # If the target device is not a real block device we'll first losetup it.
 # This is needed for file disks.
 if ! test -b "$BLOCKDEV"; then
     OLD_BLOCKDEV="$BLOCKDEV"
     BLOCKDEV="$("$LOSETUP" -sf "$BLOCKDEV")"
-    CLEANUP+=("\"$LOSETUP\" -d \"$BLOCKDEV\"")
+    cleanup push "\"$LOSETUP\" -d \"$BLOCKDEV\""
 fi
 
 filesystem_dev="$(map_disk0)"
-CLEANUP+=('unmap_disk0')
+cleanup push 'unmap_disk0'
 root_dev="$(map_partition "$filesystem_dev" root)"
 boot_dev="$(map_partition "$filesystem_dev" boot)"
 
@@ -104,7 +104,3 @@ if test "x$OLD_HNAME" = "x$old_name" || \
 else
     die 'Cannot rename from %s to %s:\nInstance has a different hostname (%s)\n' "$old_name" "$instance" "$OLD_HNAME"
 fi
-
-# execute cleanups
-cleanup
-trap - EXIT

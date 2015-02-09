@@ -26,24 +26,24 @@ debug set -x
 if ! test -b "$BLOCKDEV"; then
     OLD_BLOCKDEV="$BLOCKDEV"
     BLOCKDEV="$("$LOSETUP" -sf "$BLOCKDEV")"
-    CLEANUP+=("\"$LOSETUP\" -d \"$BLOCKDEV\"")
+    cleanup push "\"$LOSETUP\" -d \"$BLOCKDEV\""
 fi
 
 if ! test 'yes' = "$NOMOUNT"; then
     filesystem_dev="$(map_disk0)"
-    CLEANUP+=('unmap_disk0')
+    cleanup push 'unmap_disk0'
     root_dev="$(map_partition "$filesystem_dev" root)"
     boot_dev="$(map_partition "$filesystem_dev" boot)"
 fi
 
 TARGET="`mktemp -d --tmpdir="${EXPORT_DIR:-${TMPDIR:-/tmp}}"`"
-CLEANUP+=("rmdir \"$TARGET\"")
+cleanup push "rmdir \"$TARGET\""
 
 if test 'yes' = "$NOMOUNT"; then
     # convert block device to qcow2 image to support OS's like Windows. Use
     # qcow2 to conserve on space.
     "$QEMU_IMG" convert "$BLOCKDEV" -O qcow2 "${TARGET}/disk.img"
-    CLEANUP+=("rm -f \"${TARGET}/disk.img\"")
+    cleanup push "rm -f \"${TARGET}/disk.img\""
 else
     vol_type_root="$(eval "$VOL_TYPE \"$root_dev\"")"
     test -z "$boot_dev" || vol_type_boot="$(eval "$VOL_TYPE \"$boot_dev\"")"
@@ -58,7 +58,7 @@ else
             case "$vol_type" in
                 ext3|ext2|ext4)
                     "$DUMP" -0 -q -z9 -f "${TARGET}/${_fs}.dump" "$dev"
-                    CLEANUP+=("rm -f \"${TARGET}/${_fs}.dump\"")
+                    cleanup push "rm -f \"${TARGET}/${_fs}.dump\""
                     ;;
                 *)
                     die '%s is not a supported filesystem. Please use ext{2,3,4}\n' "$_fs"
@@ -69,7 +69,3 @@ else
 fi
 
 ( cd "$TARGET"; tar -cf - . )
-
-# execute cleanups
-cleanup
-trap - EXIT

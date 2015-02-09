@@ -47,14 +47,14 @@ setup_disk_devs() {
     boot_part="${BOOT_DEV##*-}"
 
     mknod "${TARGET}/dev/$disk" b `stat -L -c '0x%t 0x%T' "$BLOCKDEV"`
-    CLEANUP+=("rm -f \"${TARGET}/dev/$disk\"")
+    cleanup push "rm -f \"${TARGET}/dev/$disk\""
 
     mknod "${TARGET}/dev/${disk}$root_part" b `stat -L -c '0x%t 0x%T' "$ROOT_DEV"`
-    CLEANUP+=("rm -f \"${TARGET}/dev/${disk}$root_part\"")
+    cleanup push "rm -f \"${TARGET}/dev/${disk}$root_part\""
 
     if test -n "$BOOT_DEV"; then
         mknod "${TARGET}/dev/${disk}$boot_part" b `stat -L -c '0x%t 0x%T' "$BOOT_DEV"`
-        CLEANUP+=("rm -f \"${TARGET}/dev/${disk}$boot_part\"")
+        cleanup push "rm -f \"${TARGET}/dev/${disk}$boot_part\""
     fi
 
     # setup minimal proc environment for grub2
@@ -63,18 +63,18 @@ setup_disk_devs() {
 /dev/${disk}$boot_part /boot $FILESYSTEM rw,relatime,barrier=1,data=ordered 0 0
 /dev/${disk}$root_part / $FILESYSTEM rw,relatime,barrier=1,data=ordered 0 0
 EOF
-    CLEANUP+=("rm -rf \"${TARGET}/proc/mounts\"")
+    cleanup push "rm -rf \"${TARGET}/proc/mounts\""
 
     cat >"${TARGET}/proc/devices" <<EOF
 Block devices:
 251 virtblk
 252 device-mapper
 EOF
-    CLEANUP+=("rm -rf \"${TARGET}/proc/devices\"")
+    cleanup push "rm -rf \"${TARGET}/proc/devices\""
     cat >"${TARGET}/proc/misc" <<EOF
 60 device-mapper
 EOF
-    CLEANUP+=("rm -rf \"${TARGET}/proc/misc\"")
+    cleanup push "rm -rf \"${TARGET}/proc/misc\""
 }
 
 add_devicemap() {
@@ -156,7 +156,3 @@ if test 'True' = "$INSTANCE_HV_serial_console"; then
         verbprint 'No grub bootloader found, skipping...\n'
     fi
 fi
-
-# execute cleanups
-cleanup
-trap - EXIT

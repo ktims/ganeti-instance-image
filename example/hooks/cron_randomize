@@ -21,6 +21,3 @@ $min * * * *      root    cd / && run-parts --report cron.hourly
 `expr $min + 13` 6 * * 7 root    test -x /usr/sbin/anacron || ( cd / && run-parts --report cron.weekly )
 `expr $min + 24` 6 1 * * root    test -x /usr/sbin/anacron || ( cd / && run-parts --report cron.monthly )
 EOF
-
-cleanup
-trap - EXIT

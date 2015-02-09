@@ -34,4 +34,4 @@ rmdir "$TARGET"
 $KPARTX -d -p- "$DISK_0_PATH"
 gnt-instance deactivate-disks "$INSTANCE_NAME"
 
-CLEANUP=( )
+cleanup uninit

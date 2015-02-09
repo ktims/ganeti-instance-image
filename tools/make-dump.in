@@ -13,18 +13,18 @@ HYPERVISOR="${info[1]}"
 DISK_COUNT="${info[2]}"
 OS_API_VERSION=20
 
+. "@osdir@/@osname@/common.sh"
+
 # do stuff
 output="$(gnt-instance activate-disks "$INSTANCE_NAME")"
-CLEANUP+=("gnt-instance deactivate-disks \"$INSTANCE_NAME\"")
+cleanup push "gnt-instance deactivate-disks \"$INSTANCE_NAME\""
 
 DISK_0_PATH="${output/*disk\/0\:/}"
-
-. "@osdir@/@osname@/common.sh"
 
 ! test -n "$2" || IMAGE_DIR="$2"
 
 filesystem_dev="$(map_disk0)"
-CLEANUP+=('unmap_disk0')
+cleanup push 'unmap_disk0'
 root_dev="$(map_partition "$filesystem_dev" root)"
 boot_dev="$(map_partition "$filesystem_dev" boot)"
 

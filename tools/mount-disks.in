@@ -31,4 +31,4 @@ $MKDIR_P "$TARGET"
 mount_disk0
 printf '%s is now mounted at %s\n' "$INSTANCE_NAME" "$TARGET"
 
-CLEANUP=( )
+cleanup uninit

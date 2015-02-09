@@ -90,7 +90,7 @@ test -d "$IMAGE_DIR" || { log_error "Error: $IMAGE_DIR not found"; exit 1; }
 
 # Setup partitions w/ kpartx
 filesystem_dev="$(map_disk0)"
-CLEANUP+=('unmap_disk0')
+cleanup push 'unmap_disk0'
 root_dev="$(map_partition "$filesystem_dev" root)"
 boot_dev="$(map_partition "$filesystem_dev" boot)"
 
@@ -98,7 +98,7 @@ case "$TYPE" in
     tarball)
         # Make temp dir for mounting
         TARGET="`mktemp -d`"
-        CLEANUP+=("rmdir \"$TARGET\"")
+        cleanup push "rmdir \"$TARGET\""
 
         # Mount filesystems
         mount_disk0

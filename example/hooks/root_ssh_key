@@ -13,6 +13,3 @@ if test -n "$IMG_SSH_KEY_URL"; then
     $WGET -q -O "${TARGET}/root/.ssh/authorized_keys" "$IMG_SSH_KEY_URL"
     verbprint 'Succesfully injected ssh key\n'
 fi
-
-cleanup
-trap - EXIT

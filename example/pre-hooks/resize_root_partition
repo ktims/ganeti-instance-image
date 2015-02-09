@@ -82,8 +82,6 @@ if test 'qemu' = "$IMAGE_TYPE"; then
     # Abort if device too small
     if test $device_size -lt $used_size; then
         printf 'Device size (%d sectors) is less than size used by partitions (%d sectors). Aborting.\n' "$device_size" "$used_size" >&2
-        cleanup
-        trap - EXIT
         exit 1
     fi
 
@@ -103,7 +101,7 @@ if test 'qemu' = "$IMAGE_TYPE"; then
         part_size reset $part_num
 
         filesystem_dev="$(map_disk0)"
-        CLEANUP+=('unmap_disk0')
+        cleanup push 'unmap_disk0'
         ROOT_DEV="$(map_partition "$filesystem_dev" 'root')"
 
         # Expand filesystem on final partition
@@ -117,6 +115,3 @@ if test 'qemu' = "$IMAGE_TYPE"; then
 
     fi
 fi
-
-cleanup
-trap - EXIT

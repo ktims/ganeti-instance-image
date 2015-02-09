@@ -65,11 +65,11 @@ systemd_setup() {
     cat /dev/null >"${TARGET}/etc/machine-id"
     # Bind mount /dev to get temporary use of /dev/urandom
     mount --bind '/dev' "${TARGET}/dev"
-    CLEANUP+=("umount \"${TARGET}/dev\"")
+    cleanup push "umount \"${TARGET}/dev\""
     # Set new machine-id (this works because it writes direct to file)
     chroot "$TARGET" 'systemd-machine-id-setup' >/dev/null 2>&1
     umount "${TARGET}/dev"
-    pop_cleanup
+    cleanup pop
     # Update machine-info
     cat <<EOF >"${TARGET}/etc/machine-info"
 PRETTY_HOSTNAME="$_host_name"
@@ -218,6 +218,3 @@ if test "$NIC_COUNT" -gt 0 && test -n "$OS_TYPE"; then
 else
     die 'Unsupported OS_TYPE\n'
 fi
-
-cleanup
-trap - EXIT

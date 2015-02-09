@@ -47,7 +47,7 @@ if ! test -z "$IMAGE_URL"; then
             die 'Image doesn'\''t match checksum!\n'
     fi
     ! test 'yes' = "$IMG_CLEANUP" || \
-        CLEANUP+=("rm -f \"${CACHE_DIR}/${IMAGE_NAME}-${ARCH}$IMG_EXT\" \"${CACHE_DIR}/${IMAGE_NAME}-${ARCH}${IMG_EXT}.sig\"")
+        cleanup push "rm -f \"${CACHE_DIR}/${IMAGE_NAME}-${ARCH}$IMG_EXT\" \"${CACHE_DIR}/${IMAGE_NAME}-${ARCH}${IMG_EXT}.sig\""
     IMAGE_FILE="${CACHE_DIR}/${IMAGE_NAME}-${ARCH}$IMG_EXT"
     cd "$OLDPWD"
 else
@@ -58,7 +58,7 @@ if test 'dump' = "$IMAGE_TYPE"; then
     # Workaround for restore's non-unique /tmp/rstdir* and /tmp/rstmode*
     TMPDIR="$(mktemp -d --tmpdir "${INSTANCE_NAME}_XXXXXXXX")"
     export TMPDIR
-    CLEANUP+=("rmdir --ignore-fail-on-non-empty \"$TMPDIR\"")
+    cleanup push "rmdir --ignore-fail-on-non-empty \"$TMPDIR\""
 fi
 
 if test 'no' = "$CDINSTALL"; then
@@ -67,7 +67,7 @@ if test 'no' = "$CDINSTALL"; then
     if ! test -b "$BLOCKDEV"; then
         OLD_BLOCKDEV="$BLOCKDEV"
         BLOCKDEV="$("$LOSETUP" -sf "$BLOCKDEV")"
-        CLEANUP+=("\"$LOSETUP\" -d \"$BLOCKDEV\"")
+        cleanup push "\"$LOSETUP\" -d \"$BLOCKDEV\""
     fi
 
     DISK_SIZE="$(expr `"$BLOCKDEV_CMD" --getsize64 "$BLOCKDEV"` / 1048576)"
@@ -99,7 +99,7 @@ if test 'no' = "$CDINSTALL"; then
     fi
 
     filesystem_dev="$(map_disk0)"
-    CLEANUP+=('unmap_disk0')
+    cleanup push 'unmap_disk0'
     root_dev="$(map_partition "$filesystem_dev" root)"
     boot_dev="$(map_partition "$filesystem_dev" boot)"
     swap_dev="$(map_partition "$filesystem_dev" swap)"
@@ -114,7 +114,7 @@ if test 'no' = "$CDINSTALL"; then
     esac
 
     TARGET="`mktemp -d`"
-    CLEANUP+=("rmdir \"$TARGET\"")
+    cleanup push "rmdir \"$TARGET\""
 
     # mount filesystems
     mount_disk0
@@ -151,7 +151,3 @@ if test 'no' = "$CDINSTALL"; then
         "$RUN_PARTS" "$CUSTOMIZE_DIR"
     fi
 fi
-
-# execute cleanups
-cleanup
-trap - EXIT

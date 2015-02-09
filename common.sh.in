@@ -36,8 +36,8 @@ WGET="@WGET@ --connect-timeout=20 --tries=3"
 SHA1SUM="@SHA1SUM@"
 BLOCKDEV_CMD="@BLOCKDEV_CMD@"
 BLKID="@BLKID@"
-
-CLEANUP=( )
+CLEANUP=':'
+CLEANUP_INITIALISED=0
 
 usage() { :; } # override this
 
@@ -54,21 +54,56 @@ die() { printerr "$@"; exit 1; }
 croak() { usage >&2; die "$@"; }
 
 cleanup() {
-    if test ${#CLEANUP[*]} -gt 0; then
-        LAST_ELEMENT=`expr ${#CLEANUP[*]} - 1 || :`
-        REVERSE_INDEXES=$(seq $LAST_ELEMENT -1 0)
-        for i in $REVERSE_INDEXES; do
-            eval "${CLEANUP[$i]}"
-        done
-    fi
-}
-
-pop_cleanup() {
-    if test ${#CLEANUP[@]} -eq 1; then
-        CLEANUP=( )
+    _exitval=$?
+    if test $# -eq 0; then
+        _cleanup_action='do'
     else
-        CLEANUP=("${CLEANUP[0]}" "${CLEANUP[@]:2}")
+        _cleanup_action="$1"
+        shift
     fi
+    case "$_cleanup_action" in
+        init)
+            test 1 -eq $CLEANUP_INITIALISED || { CLEANUP=':'; CLEANUP_INITIALISED=1; }
+            ;;
+        uninit)
+            test 0 -eq $CLEANUP_INITIALISED || { CLEANUP=':'; CLEANUP_INITIALISED=0; }
+            ;;
+        *)
+            if test 1 = "$CLEANUP_INITIALISED"; then
+                case "$_cleanup_action" in
+                    show)
+                        printf '%s\n' "$CLEANUP"
+                        ;;
+                    pop)
+                        CLEANUP="$(printf '%s' "$CLEANUP" | sed -e '1d')"
+                        ;;
+                    push)
+                        CLEANUP="{ $1; } && \\
+$CLEANUP"
+                        ;;
+                    shift)
+                        CLEANUP="$(printf '%s' "$CLEANUP" | sed -n -e '${p;q};1h;1!{x;p;}')"
+                        ;;
+                    unshift)
+                        CLEANUP="$(printf '%s' "$CLEANUP" | sed -e '$d')
+{ $1; } && \\
+:"
+                        ;;
+                    do)
+                        test 0 -eq $_exitval || printerr 'CLEANUP MARKER\n'
+                        eval "$CLEANUP"
+                        cleanup uninit
+                        ;;
+                esac
+            fi
+        ;;
+    esac
+    case "$_cleanup_action" in
+        init|pop|push|shift|unshift)
+            trap 'cleanup' EXIT || :
+            ;;
+    esac
+    :
 }
 
 get_os_type() {
@@ -223,15 +258,13 @@ mkfs_disk0() {
 
 mount_disk0() {
     mount "$root_dev" "$TARGET"
-    CLEANUP+=("umount \"$TARGET\"")
+    cleanup push "umount \"${TARGET}/sys\" 2>/dev/null || :; umount \"$TARGET\""
     if test -n "$boot_dev"; then
         $MKDIR_P "${TARGET}/boot"
         mount "$boot_dev" "${TARGET}/boot"
-        CLEANUP+=("umount \"${TARGET}/boot\"")
+        cleanup push "umount \"${TARGET}/boot\""
     fi
-    # sync the file systems before unmounting to ensure everything is flushed
-    # out
-    CLEANUP+=('sync')
+    cleanup push 'sync'
 }
 
 map_disk0() {
@@ -414,7 +447,7 @@ get_api20_parameters() {
 
 ##
 
-trap cleanup EXIT
+cleanup init
 
 DEFAULT_FILE="@defaultdir@/ganeti-instance-image"
 ! test -f "$DEFAULT_FILE" || . "$DEFAULT_FILE"

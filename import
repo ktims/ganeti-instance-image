@@ -26,18 +26,18 @@ debug set -x
 if ! test -b "$BLOCKDEV"; then
     OLD_BLOCKDEV="$BLOCKDEV"
     BLOCKDEV="$("$LOSETUP" -sf "$BLOCKDEV")"
-    CLEANUP+=("\"$LOSETUP\" -d \"$BLOCKDEV\"")
+    cleanup push "\"$LOSETUP\" -d \"$BLOCKDEV\""
 fi
 
 TARGET="`mktemp -d`"
-CLEANUP+=("rmdir \"$TARGET\"")
+cleanup push "rmdir \"$TARGET\""
 DUMPDIR="`mktemp -d`"
-CLEANUP+=("rm -rf \"$DUMPDIR\"")
+cleanup push "rm -rf \"$DUMPDIR\""
 
 if ! test 'yes' = "$NOMOUNT"; then
     format_disk0 "$BLOCKDEV"
     filesystem_dev="$(map_disk0)"
-    CLEANUP+=('unmap_disk0')
+    cleanup push 'unmap_disk0'
     root_dev="$(map_partition "$filesystem_dev" root)"
     boot_dev="$(map_partition "$filesystem_dev" boot)"
     swap_dev="$(map_partition "$filesystem_dev" swap)"
@@ -74,7 +74,3 @@ else
         "${CUSTOMIZE_DIR}/grub"
     fi
 fi
-
-# execute cleanups
-cleanup
-trap - EXIT
