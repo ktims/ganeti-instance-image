@@ -414,35 +414,74 @@ filesystem_check() {
     esac
 }
 
-get_api10_arguments() {
+check_api10_parameters() {
     test -n "$INSTANCE_NAME" && test -n "$HYPERVISOR" && test -n "$DISK_COUNT" || \
         die 'Missing OS API Variable:\n(INSTANCE_NAME, HYPERVISOR or DISK_COUNT)\n'
-    instance="$INSTANCE_NAME"
     test 1 -le $DISK_COUNT && test -n "$DISK_0_PATH" || die 'At least one disk is needed\n'
     case "$SCRIPT_NAME" in
         export)
             test -n "$EXPORT_DEVICE" || die 'Missing OS API Variable EXPORT_DEVICE\n'
-            BLOCKDEV="$EXPORT_DEVICE"
             ;;
         import)
             test -n "$IMPORT_DEVICE" || die 'Missing OS API Variable IMPORT_DEVICE\n'
+            ;;
+    esac
+    ! test 'rename' = "$SCRIPT_NAME" || test -n "$OLD_INSTANCE_NAME" || \
+        die 'Missing OS API Variable OLD_INSTANCE_NAME\n'
+}
+
+check_api20_parameters() {
+    case "$OSP_IMG_FORMAT" in
+        tarball|qemu|dump)
+            :
+            ;;
+        *)
+            die 'Wrong image format "%s" for OSP_IMG_FORMAT. Supported formats are: qemu, tarball, dump.\n' "$OSP_IMG_FORMAT"
+            ;;
+    esac
+    test -n "$OSP_IMG_ID" || die 'Missing OS image ID (OSP_IMG_ID),\n'
+}
+
+check_api_parameters() {
+    case "$OS_API_VERSION" in
+        4|5|10|15)
+            die 'Obsolete OS API VERSION "%s"\n' "$OS_API_VERSION"
+            ;;
+        20)
+            check_api10_parameters
+            check_api20_parameters
+            ;;
+        *)
+            die 'Unknown OS API VERSION "%s"\n' "$OS_API_VERSION"
+            ;;
+    esac
+}
+
+get_api10_parameters() {
+    instance="$INSTANCE_NAME"
+    case "$SCRIPT_NAME" in
+        export)
+            BLOCKDEV="$EXPORT_DEVICE"
+            ;;
+        import)
             BLOCKDEV="$IMPORT_DEVICE"
             ;;
         *)
             BLOCKDEV="$DISK_0_PATH"
             ;;
     esac
-    ! test 'rename' = "$SCRIPT_NAME" || test -n "$OLD_INSTANCE_NAME" || \
-        die 'Missing OS API Variable OLD_INSTANCE_NAME\n'
     old_name="$OLD_INSTANCE_NAME"
 }
 
 get_api20_parameters() {
-    test -n "$OSP_IMG_ID" && test -n "$OSP_IMG_FORMAT" || \
-        die 'Missing OS API Parameter:\n(OSP_IMG_ID or OSP_IMG_FORMAT)\n'
-    IMG_ID="$OSP_IMG_ID"
-    IMAGE_TYPE="$OSP_IMG_FORMAT"
+    IMG_ID="$OSP_IMG_ID"; IMAGE_NAME="$IMG_ID" # backwards-compatibility, historical naming
+    IMG_FORMAT="$OSP_IMG_FORMAT"; IMAGE_TYPE="$IMG_FORMAT" # backwards-compatibility, historical naming
     IMG_SSH_KEY_URL="$OSP_IMG_SSH_KEY_URL"
+}
+
+get_api_parameters() {
+    get_api10_parameters
+    get_api20_parameters
 }
 
 ##
@@ -489,8 +528,7 @@ KERNEL_PATH="$INSTANCE_HV_kernel_path"
 VOL_ID="\"$BLKID\" -c /dev/null -o 'value' -s 'UUID'"
 VOL_TYPE="\"$BLKID\" -c /dev/null -o 'value' -s 'TYPE'"
 
-get_api10_arguments
-get_api20_parameters
+get_api_parameters
 IMAGE_NAME="$IMG_ID"
 
 if test -n "$OS_VARIANT"; then
