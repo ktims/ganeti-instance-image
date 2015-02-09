@@ -285,34 +285,48 @@ map_disk0() {
     `"
     test -n "$_filesystem_dev1_base" || die 'Cannot interpret kpartx output and get partition mapping\n'
     $KPARTX -a -p- "$BLOCKDEV" >/dev/null
+    cleanup push "sync; $KPARTX -d -p- \"$BLOCKDEV\""
     _filesystem_dev="/dev/mapper/${_filesystem_dev1_base%-1}"
     test -b "/dev/mapper/$_filesystem_dev1_base" || \
         die 'Can'\''t find kpartx mapped partition: /dev/mapper/%s\n' "$_filesystem_dev1_base"
     printf '%s' "$_filesystem_dev"
 }
 
-unmap_disk0() { sync; $KPARTX -d -p- "$BLOCKDEV"; }
+unmap_disk0() { sync; $KPARTX -d -p- "$BLOCKDEV"; cleanup pop; }
 
 update_map_disk0() { sync; $KPARTX -u -p- "$BLOCKDEV"; }
 
 map_partition() {
-    filesystem_dev="$1"
-    partition="$2"
-    if test 'yes' = "$SWAP" && test -z "$KERNEL_PATH"; then
-        boot_dev="${filesystem_dev}-1"
-        swap_dev="${filesystem_dev}-2"
-        root_dev="${filesystem_dev}-3"
-    elif test 'no' = "$SWAP" && test -z "$KERNEL_PATH"; then
-        boot_dev="${filesystem_dev}-1"
-        root_dev="${filesystem_dev}-2"
-    elif test 'yes' = "$SWAP" && test -n "$KERNEL_PATH"; then
-        swap_dev="${filesystem_dev}-1"
-        root_dev="${filesystem_dev}-2"
-    elif test 'no' = "$SWAP" && test -n "$KERNEL_PATH"; then
-        root_dev="${filesystem_dev}-1"
+    _partition="$1"
+    _root_dev=''; _boot_dev=''; _swap_dev=''
+    if test 'no' = "$SWAP"; then
+        if test -n "$KERNEL_PATH"; then
+            _root_dev="${filesystem_dev}-1"
+        else
+            _boot_dev="${filesystem_dev}-1"
+            _root_dev="${filesystem_dev}-2"
+        fi
+    else
+        if test -n "$KERNEL_PATH"; then
+            _swap_dev="${filesystem_dev}-1"
+            _root_dev="${filesystem_dev}-2"
+        else
+            _boot_dev="${filesystem_dev}-1"
+            _swap_dev="${filesystem_dev}-2"
+            _root_dev="${filesystem_dev}-3"
+        fi
     fi
-    eval "printf '%s' \"\$${partition}_dev\""
+    eval "printf '%s' \"\$_${_partition}_dev\""
 }
+
+map_all() {
+    filesystem_dev="$(map_disk0)"
+    cleanup push "unmap_disk0"
+    root_dev="$(map_partition root)"
+    boot_dev="$(map_partition boot)"
+    swap_dev="$(map_partition swap)"
+}
+
 
 setup_fstab() {
     get_os_type

@@ -22,16 +22,10 @@ set -e
 debug set -x
 
 ! test 'yes' = "$NOMOUNT" || exit 0
-
+losetup_blockdev
+map_all
 TARGET="`mktemp -d`"
 cleanup push "rmdir \"$TARGET\""
-
-losetup_blockdev
-filesystem_dev="$(map_disk0)"
-cleanup push 'unmap_disk0'
-root_dev="$(map_partition "$filesystem_dev" root)"
-boot_dev="$(map_partition "$filesystem_dev" boot)"
-
 mount_disk0
 get_os_type
 

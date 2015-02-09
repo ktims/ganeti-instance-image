@@ -22,13 +22,7 @@ set -e
 debug set -x
 
 losetup_blockdev
-if ! test 'yes' = "$NOMOUNT"; then
-    filesystem_dev="$(map_disk0)"
-    cleanup push 'unmap_disk0'
-    root_dev="$(map_partition "$filesystem_dev" root)"
-    boot_dev="$(map_partition "$filesystem_dev" boot)"
-fi
-
+test 'yes' = "$NOMOUNT" || map_all
 TARGET="`mktemp -d --tmpdir="${EXPORT_DIR:-${TMPDIR:-/tmp}}"`"
 cleanup push "rmdir \"$TARGET\""
 

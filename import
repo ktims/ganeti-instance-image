@@ -29,12 +29,7 @@ cleanup push "rm -rf \"$DUMPDIR\""
 
 if ! test 'yes' = "$NOMOUNT"; then
     format_disk0 "$BLOCKDEV"
-    filesystem_dev="$(map_disk0)"
-    cleanup push 'unmap_disk0'
-    root_dev="$(map_partition "$filesystem_dev" root)"
-    boot_dev="$(map_partition "$filesystem_dev" boot)"
-    swap_dev="$(map_partition "$filesystem_dev" swap)"
-
+    map_all
     mkfs_disk0
     root_uuid="$(eval "$VOL_ID \"$root_dev\"")"
     test -n "$boot_dev" && boot_uuid="$(eval "$VOL_ID \"$boot_dev\"")"

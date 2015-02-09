@@ -90,13 +90,7 @@ if test 'no' = "$CDINSTALL"; then
         export TARGET SUITE BLOCKDEV IMAGE_TYPE
         "$RUN_PARTS" "$PRE_CUSTOMIZE_DIR"
     fi
-
-    filesystem_dev="$(map_disk0)"
-    cleanup push 'unmap_disk0'
-    root_dev="$(map_partition "$filesystem_dev" root)"
-    boot_dev="$(map_partition "$filesystem_dev" boot)"
-    swap_dev="$(map_partition "$filesystem_dev" swap)"
-
+    map_all
     case "$IMAGE_TYPE" in
         tarball|dump)
             mkfs_disk0
