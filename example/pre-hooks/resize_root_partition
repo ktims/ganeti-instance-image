@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (C) 2014 GRNET S.A.
+# Copyright (C) 2014-2015 GRNET S.A.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,95 +23,8 @@ set -e
 debug set -x
 
 if test 'qemu' = "$IMAGE_TYPE"; then
-
-    part_table() {
-        _action="$1" # set, get
-        # sfdisk -d seems to always output in 512-byte sectors regardless of -uX
-        # (using -uS here anyway in case someone else's sfdisk has a different default)
-        if test 'set' = "$_action"; then
-            "$SFDISK" -L -uS "$BLOCKDEV" 2>/dev/null
-        else
-            "$SFDISK" -L -uS -d "$BLOCKDEV" 2>/dev/null
-        fi
-    }
-
-    get_part_sizes() {
-        _part_num="$1"
-        part_table get | \
-            sed -n -e '1,/^$/ b; p' | \
-            sed -e "$(
-                test -z "$root_part_num" || printf '%d q; ' `expr $_part_num + 1`
-            )"'s/^.*size= *\([0-9]\+\),.*$/\1/' | \
-            tr '\n' ' '
-    }
-
-    part_size() {
-        _action="$1" # reset, set, get
-        _part_num="$2"
-        _value=''
-        ! test 'set' = "$_action" || _value="$3"
-        part_table get | \
-            sed -n -e '1,/^$/ b; p' | \
-            if test 'get' = "$_action"; then
-                sed -n -e "$_part_num"'! b; s/^.*size= *\([0-9]\+\),.*$/\1/; p; q'
-            else
-                sed -e "$_part_num"'! b; s/size= *[0-9]\+,/size=,'"$_value"'/' | \
-                    part_table set
-            fi
-    }
-
-    # Set disk based on type of hypervisor
-    if test 'kvm' = "$HYPERVISOR"; then
-        disk='vda'
-    else
-        disk='xda'
-    fi
-
-    # Get destination disk size in 512-byte sectors
-    device_size="`"$BLOCKDEV_CMD" --getsz "$BLOCKDEV"`"
-
-    # Get list of assigned partition sizes in table
-    part_sizes="`get_part_sizes`"
-
-    # Calculate total size used by partitions
-    used_size=0
-    for _part_size in $part_sizes; do
-        used_size="`expr $used_size + $_part_size`"
-    done
-
-    # Abort if device too small
-    if test $device_size -lt $used_size; then
-        printf 'Device size (%d sectors) is less than size used by partitions (%d sectors). Aborting.\n' "$device_size" "$used_size" >&2
-        exit 1
-    fi
-
-    # If device too big
-    if test $device_size -gt $used_size; then
-
-        # Get root (final) partition number
-        if test 'yes' = "$SWAP" && test -z "$KERNEL_PATH"; then
-            part_num=3
-        elif test 'no' = "$SWAP" && test -z "$KERNEL_PATH" || test 'yes' = "$SWAP" && test -n "$KERNEL_PATH"; then
-            part_num=2
-        elif test 'no' = "$SWAP" && test -n "$KERNEL_PATH"; then
-            part_num=1
-        fi
-
-        # Expand (maximise) final partition
-        part_size reset $part_num
-
-        filesystem_dev="$(map_disk0)"
-        cleanup push 'unmap_disk0'
-        ROOT_DEV="$(map_partition "$filesystem_dev" 'root')"
-
-        # Expand filesystem on final partition
-        #TODO: equivalent commandlines for btrfs, xfs, zfs, ntfs, etc...
-        case "`"$BLKID" -p -u filesystem -s TYPE -o value "$ROOT_DEV"`" in
-            ext2|ext3|ext4)
-                resize2fs -f "$ROOT_DEV" >/dev/null 2>&1
-                e2fsck -f -n "$ROOT_DEV" >/dev/null 2>&1
-                ;;
-        esac
-
-    fi
+    losetup_blockdev
+    part_size check
+    part_size expand
+    fs_size expand
 fi

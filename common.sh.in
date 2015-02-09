@@ -115,6 +115,132 @@ losetup_blockdev() {
     fi
 }
 
+disk_size() {
+    _disk_size_action="$1"
+    case "$_disk_size_action" in
+        get)
+            "$BLOCKDEV_CMD" --getsz "$BLOCKDEV"
+            ;;
+        set) #TODO - qemu-img resize (numeric)?
+            :
+            ;;
+        expand) #TODO - qemu-img resize (+)?
+            :
+            ;;
+        shrink) #TODO - qemu-img resize (-)? ...with sanity checking
+            :
+            ;;
+    esac
+}
+
+part_table() {
+    _part_table_action="$1"
+    shift
+    # sfdisk -d seems to always output in 512-byte sectors regardless of -uX
+    # (using -uS here anyway in case another sfdisk has a different default)
+    case "$_part_table_action" in
+        set)
+            "$SFDISK" -L -uS "$BLOCKDEV" 2>/dev/null
+            ;;
+        get)
+            "$SFDISK" -L -uS -d "$BLOCKDEV" 2>/dev/null
+            ;;
+    esac
+}
+
+get_partnum() {
+    if test 'yes' = "$SWAP" && test -z "$KERNEL_PATH"; then
+        printf 3
+    elif { test 'no' = "$SWAP" && test -z "$KERNEL_PATH"; } || { test 'yes' = "$SWAP" && test -n "$KERNEL_PATH"; }; then
+        printf 2
+    elif test 'no' = "$SWAP" && test -n "$KERNEL_PATH"; then
+        printf 1
+    fi
+}
+
+get_part_sizes() {
+    _partnum="${1:-`get_partnum`}"
+    part_table get | \
+        sed -n -e '1,/^$/ b; p' | \
+        sed -n -e "$(printf '%d q; ' `expr $_partnum + 1 || :`)"'s/^.*size=[ \t]*\([0-9]\+\),.*$/\1/; p' | \
+        tr '\n' ' '
+}
+
+part_size() {
+    _part_size_action="$1"
+    _partnum="${2:-`get_partnum`}"
+    case "$_part_size_action" in
+        set)
+            _size="$3"
+            ;;
+        expand)
+            _size=''
+            ;;
+        shrink)
+            #TODO:
+            # - capture FS size, convert from sectors (512) to blocks (4k, or..),
+            #   remember to round-up if/when necessary
+            _size=''
+            ;;
+    esac
+    part_table get | \
+        sed -n -e '1,/^$/ b; p' | \
+        case "$_part_size_action" in
+            get)
+                sed -n -e "$_partnum"'! b; s/^.*size= *\([0-9]\+\),.*$/\1/; p; q'
+                ;;
+            set|expand|shrink)
+                sed -e "$_partnum"'! b; s/size= *[0-9]\+,/size=,'"$_size"'/' | \
+                part_table set
+                sync
+                ;;
+            check)
+                _devicesize="`disk_size get`"
+                _usedsize=0
+                for _partsize in `get_part_sizes`; do
+                    _usedsize=`expr $_usedsize + $_partsize || :`
+                done
+                if test $_devicesize -lt $_usedsize; then
+                    die 'Device size (%d sectors) is less than size used by partitions (%d sectors).\n' \
+                        "$_devicesize" "$_usedsize"
+                fi
+                ;;
+        esac
+}
+
+get_fs() { "$BLKID" -p -u 'filesystem' -s 'TYPE' -o 'value' "$1"; }
+
+fs_size() {
+    _fs_size_action="$1"
+    _partnum="${2:-`get_partnum`}"
+    if test 'set' = "$_fs_size_action"; then
+        _size="$3"
+    else
+        _size=''
+    fi
+    if test -z "$filesystem_dev"; then
+        filesystem_dev="$(map_disk0)"
+        cleanup push "unmap_disk0"
+    fi
+    _partdev="${filesystem_dev}-$_partnum"
+    _fstype="`get_fs "$_partdev"`"
+    case "$_fs_size_action" in
+        get) #TODO
+            :
+            ;;
+        set|expand|shrink)
+            #TODO: btrfs, xfs, zfs, ntfs, etc...
+            case "$_fstype" in
+                ext2|ext3|ext4)
+                    e2fsck -n -f "$_partdev"
+                    resize2fs -f `! test 'shrink' = "$_fs_size_action" || printf -- -M` "$_partdev" $_size
+                    e2fsck -n -f "$_partdev"
+                    ;;
+            esac
+            ;;
+    esac
+}
+
 get_os_type() {
     test -n "$TARGET" || die 'TARGET is not set in get_os_type\n'
     if test -e "${TARGET}/etc/redhat-release"; then
