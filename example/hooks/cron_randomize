@@ -10,7 +10,6 @@ debug set -x
 
 n="`od -An -N1 -t u1 '/dev/urandom'`"
 min=`expr $n % 30 || :`
-
 cat >"${TARGET}/etc/crontab" <<EOF
 SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin

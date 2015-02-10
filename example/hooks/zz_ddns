@@ -27,14 +27,11 @@ debug set -x
 FQDN="$INSTANCE_NAME"
 SHORT_NAME="$(printf '%s' "$INSTANCE_NAME" | cut -d. -f1)"
 RENAME=''
-
 test -d "$TARGET" || die 'Missing target directory\n'
-
 while getopts 'r' _opt; do
     ! test 'r' = "$_opt" || RENAME='true'
 done
 
-# Functions
 debian_setup() {
     _dhclient_conf=''
     if test -f "${TARGET}/etc/dhcp/dhclient.conf"; then
@@ -44,7 +41,6 @@ debian_setup() {
     else
         die 'Missing dhclient.conf file\n'
     fi
-
     if test -n "$FQDN" && test -z "$RENAME"; then
         printf 'send host-name %s;' "$SHORT_NAME" >>"$_dhclient_conf"
     else
@@ -65,9 +61,7 @@ gentoo_setup() { verbprint 'no action needed for ddns\n'; }
 
 suse_setup() { verbprint 'untested for suse\n'; }
 
-# Main
 get_os_type
-
 if test $NIC_COUNT -gt 0 && test -n "$OS_TYPE"; then
     "${OS_TYPE}_setup"
 else

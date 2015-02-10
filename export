@@ -27,14 +27,11 @@ TARGET="`mktemp -d --tmpdir="${EXPORT_DIR:-${TMPDIR:-/tmp}}"`"
 cleanup push "rmdir \"$TARGET\""
 
 if test 'yes' = "$NOMOUNT"; then
-    # convert block device to qcow2 image to support OS's like Windows. Use
-    # qcow2 to conserve on space.
     "$QEMU_IMG" convert "$BLOCKDEV" -O qcow2 "${TARGET}/disk.img"
     cleanup push "rm -f \"${TARGET}/disk.img\""
 else
     vol_type_root="$(eval "$VOL_TYPE \"$root_dev\"")"
     test -z "$boot_dev" || vol_type_boot="$(eval "$VOL_TYPE \"$boot_dev\"")"
-
     for _fs in 'boot' 'root'; do
         # use indirect reference to make the variables dynamic (these are a mess, fix in an
         # upcoming commit)
@@ -54,5 +51,4 @@ else
         fi
     done
 fi
-
 ( cd "$TARGET"; tar -cf - . )

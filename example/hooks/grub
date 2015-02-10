@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 #
-# This is an example script that configures, grub after installation. This
+# This is an example script that configures grub after installation. This
 # script assumes that grub has been installed onto the image already and a
 # working grub.conf exists. This is only enabled if using the tarball image
 # type.
@@ -27,14 +27,11 @@ set -e
 debug set -x
 
 test -d "$TARGET" || die 'Missing target directory\n'
-
-# Set disk based on type of hypervisor
 if test 'kvm' = "$HYPERVISOR"; then
     disk='vda'
 else
     disk='xda'
 fi
-
 if test -s "${TARGET}/boot/grub2/grub.cfg"; then
     boot_dir_internal='/boot/grub2'
 else
@@ -45,18 +42,17 @@ boot_dir="${TARGET}$boot_dir_internal"
 setup_disk_devs() {
     root_part="${ROOT_DEV##*-}"
     boot_part="${BOOT_DEV##*-}"
-
+    # create internal filesystem disk device
     mknod "${TARGET}/dev/$disk" b `stat -L -c '0x%t 0x%T' "$BLOCKDEV"`
     cleanup push "rm -f \"${TARGET}/dev/$disk\""
-
+    # create internal root partition device
     mknod "${TARGET}/dev/${disk}$root_part" b `stat -L -c '0x%t 0x%T' "$ROOT_DEV"`
     cleanup push "rm -f \"${TARGET}/dev/${disk}$root_part\""
-
     if test -n "$BOOT_DEV"; then
+        # create internal boot partition device
         mknod "${TARGET}/dev/${disk}$boot_part" b `stat -L -c '0x%t 0x%T' "$BOOT_DEV"`
         cleanup push "rm -f \"${TARGET}/dev/${disk}$boot_part\""
     fi
-
     # setup minimal proc environment for grub2
     $MKDIR_P "${TARGET}/proc"
     cat >"${TARGET}/proc/mounts" <<EOF
@@ -64,7 +60,6 @@ setup_disk_devs() {
 /dev/${disk}$root_part / $FILESYSTEM rw,relatime,barrier=1,data=ordered 0 0
 EOF
     cleanup push "rm -rf \"${TARGET}/proc/mounts\""
-
     cat >"${TARGET}/proc/devices" <<EOF
 Block devices:
 251 virtblk
@@ -127,6 +122,7 @@ EOF
             sed --follow-symlinks -i -e 's/.*GRUB_CMDLINE_LINUX="\(.*\)"/GRUB_CMDLINE_LINUX="\1 '"$KERNEL_ARGS"'/' \
                 "${TARGET}/etc/default/grub"
         # show the menu countdown in case we want to boot to a different kernel
+	# (this only applies after the user does update-grub)
         sed --follow-symlinks -i -e 's/.*GRUB_HIDDEN_TIMEOUT=.*/GRUB_HIDDEN_TIMEOUT=5/' "${TARGET}/etc/default/grub"
         sed --follow-symlinks -i -e 's/.*GRUB_HIDDEN_TIMEOUT_QUIET=.*/GRUB_HIDDEN_TIMEOUT_QUIET=false/' "${TARGET}/etc/default/grub"
         # install grub2 MBR
@@ -134,7 +130,6 @@ EOF
             --directory="$boot_dir_internal" --root-device='(hd0,1)' '(hd0)' >/dev/null
     fi
 fi
-
 # setup serial console
 if test 'True' = "$INSTANCE_HV_serial_console"; then
     test -e "${TARGET}/dev/$disk" || setup_disk_devs

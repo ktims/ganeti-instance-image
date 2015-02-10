@@ -25,10 +25,8 @@ set -e
 debug set -x
 
 test -d "$TARGET" || die 'Missing target directory\n'
-
 if test -n "$OVERLAY"; then
     overlay="${OVERLAYS_DIR}/$OVERLAY"
     test -d "$overlay" || die '"%s" not found\n' "$overlay"
-    # copy overlay files into target instance
     cp -ax "$overlay"/* "$TARGET"
 fi

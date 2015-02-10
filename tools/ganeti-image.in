@@ -82,32 +82,21 @@ case "$TYPE" in
         exit 1
         ;;
 esac
-
-# Am I master?
 if ! test "x`gnt-cluster getmaster`" = "x$HOSTNAME"; then
     printf 'ERROR: Command must be run from master node\n'
     exit 1
 fi
-
-# Gather some information
 info="$(gnt-instance list -o os,hypervisor,disk.count,hv/kernel_path --no-headers --separator=' ' "$INSTANCE_NAME")"
 OS_VARIANT="${info[0]/*+/}"
 HYPERVISOR="${info[1]}"
 DISK_COUNT="${info[2]}"
 INSTANCE_HV_kernel_path="${info[3]}"
 OS_API_VERSION=20
-
-# Activate disks and capture output
 ad_output="$(gnt-instance activate-disks "$INSTANCE_NAME" | sed -e 's/\:/ /g')"
-
-# Get node/disk path
 NODE="${ad_output[0]}"
 DISK_0_PATH="${ad_output[2]}"
-
 export OS_VARIANT HYPERVISOR DISK_COUNT OS_API_VERSION DISK_0_PATH INSTANCE_HV_kernel_path
-
 printf 'Creating image with type %s from %s in %s from node %s\n' "$TYPE" "$INSTANCE_NAME" "$IMAGE_DIR" from node "$NODE"
-
 if test "x$NODE" = "x$HOSTNAME"; then
     "@osdir@/@osname@/tools/make-image" -i "$INSTANCE_NAME" \
         "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH" -t "$TYPE"

@@ -12,8 +12,6 @@ OS_VARIANT="${info[0]/*+/}"
 HYPERVISOR="${info[1]}"
 DISK_COUNT="${info[2]}"
 OS_API_VERSION=20
-
-# do stuff
 output="$(gnt-instance activate-disks "$INSTANCE_NAME")"
 
 DISK_0_PATH="`printf '%s' "$output" | sed -n -e '/disk\/0:/! b; s/^.*disk\/0://; p'`"
@@ -26,9 +24,6 @@ boot_dev="$(map_partition "$filesystem_dev" boot)"
 
 TARGET="/tmp/${INSTANCE_NAME}_root"
 $MKDIR_P "$TARGET"
-
-# mount filesystems
 mount_disk0
 printf '%s is now mounted at %s\n' "$INSTANCE_NAME" "$TARGET"
-
 cleanup uninit

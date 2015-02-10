@@ -12,16 +12,12 @@ OS_VARIANT="${info[0]/*+/}"
 HYPERVISOR="${info[1]}"
 DISK_COUNT="${info[2]}"
 OS_API_VERSION=20
-
-# do stuff
 output="$(gnt-instance activate-disks "$INSTANCE_NAME")"
 cleanup push "gnt-instance deactivate-disks \"$INSTANCE_NAME\""
-
 DISK_0_PATH="${output/*disk\/0\:/}"
 
 . "@osdir@/@osname@/common.sh"
 
 test -z "$2" || IMAGE_DIR="$2"
-
 printf "Creating qemu-img image from %s to %s/%s-%s.img\n' "$INSTANCE_NAME" "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH"
 "$QEMU_IMG" convert -O qcow2 "$DISK_0_PATH" "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.img"

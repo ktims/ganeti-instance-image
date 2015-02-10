@@ -34,13 +34,10 @@ if ! test 'yes' = "$NOMOUNT"; then
     root_uuid="$(eval "$VOL_ID \"$root_dev\"")"
     test -n "$boot_dev" && boot_uuid="$(eval "$VOL_ID \"$boot_dev\"")"
     test -n "$swap_dev" && swap_uuid="$(eval "$VOL_ID \"$swap_dev\"")"
-
     mount_disk0
 fi
-
 # import dumps from tar file
 ( cd "$DUMPDIR"; tar -xf - )
-
 if test 'yes' = "$NOMOUNT"; then
     "$QEMU_IMG" convert "${DUMPDIR}/disk.img" -O 'host_device' "$BLOCKDEV"
 else
@@ -48,13 +45,9 @@ else
     rm -rf /tmp/rst*
     ( cd "$TARGET"; restore -r -y -f "${DUMPDIR}/root.dump" )
     test -z "$boot_dev" || ( cd "${TARGET}/boot"; restore -r -y -f "${DUMPDIR}/boot.dump" )
-
     setup_fstab
-
     ! test 'True' = "$INSTANCE_HV_serial_console" || setup_console
-
     rm -f "${TARGET}/etc/udev/rules.d/z"*"_persistent-net.rules"
-
     if test -x "${CUSTOMIZE_DIR}/grub"; then
         ROOT_DEV="$root_dev"; BOOT_DEV="$boot_dev"; IMPORT_SCRIPT=1
         export TARGET SUITE BLOCKDEV ROOT_DEV BOOT_DEV IMG_SSH_KEY_URL IMPORT_SCRIPT

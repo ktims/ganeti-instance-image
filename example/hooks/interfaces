@@ -27,11 +27,8 @@ debug set -x
 FQDN="$INSTANCE_NAME"
 SHORT_NAME="$(printf '%s' "$INSTANCE_NAME" | cut -d. -f1)"
 STATIC=''
-
 test -d "$TARGET" || die 'Missing target directory\n'
-
 test -n "$NIC_COUNT" || die 'Missing NIC_COUNT\n'
-
 if test -f "${NETWORKS_DIR}/instances/$FQDN'; then
     STATIC='yes'
     . "${NETWORKS_DIR}/instances/$FQDN"
@@ -46,7 +43,6 @@ resolvconf() {
         for _server in $DNS_SERVERS; do
             nameservers="nameserver ${_server}${_nl}$nameservers"
         done
-
         cat >"${TARGET}/etc/resolv.conf" <<EOF
 $nameservers
 domain $DNS_DOMAIN
@@ -79,7 +75,6 @@ EOF
 
 debian_setup() {
     test -d "${TARGET}/etc/network" || die 'Missing target network directory\n'
-
     if test -z "$STATIC"; then
         cat >"${TARGET}/etc/network/interfaces" <<EOF
 # This file describes the network interfaces available on your system
@@ -142,7 +137,6 @@ NETMASK=$NETMASK
 ONBOOT=yes
 EOF
     fi
-
     if test -n "$FQDN"; then
         cat >"${TARGET}/etc/sysconfig/network" << EOF
 NETWORKING=yes
@@ -156,7 +150,6 @@ NETWORKING=yes
 GATEWAY=$GATEWAY
 EOF
     fi
-
     resolvconf
 }
 
@@ -172,12 +165,9 @@ config_eth0=( "$ADDRESS netmask $NETMASK" )
 routes_eth0=( "default gw $GATEWAY" )
 EOF
     fi
-
     resolvconf
-
     chroot "$TARGET" ln -sf /etc/init.d/net.lo /etc/init.d/net.eth0
     chroot "$TARGET" rc-update add net.eth0 default
-
     if test -n "$FQDN"; then
         # baselayout-2.x
         if test -d "${TARGET}/usr/share/openrc/"; then
@@ -206,13 +196,11 @@ EOF
             printf '%s' "$FQDN" >"${TARGET}/etc/HOSTNAME"
         fi
     fi
-
     resolvconf
 }
 
 # Main
 get_os_type
-
 if test "$NIC_COUNT" -gt 0 && test -n "$OS_TYPE"; then
     ${OS_TYPE}_setup
 else

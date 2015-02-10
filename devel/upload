@@ -44,19 +44,12 @@ while test $# -gt 0; do
 done
 
 set $hosts
-
 TXD="`mktemp -d`"
 trap 'rm -rf "$TXD"' EXIT
-
-# install the os as a real tree
 make install DESTDIR="$TXD"
-
 printf '---\n'
-
 ( cd "$TXD" && find; )
-
 printf '---\n'
-
 for _host; do
     printf 'Uploading code to %s...\n' "$_host"
     rsync -v -rlDc "$TXD"/* "root@${_host}:/" &

@@ -53,14 +53,12 @@ if ! test -z "$IMAGE_URL"; then
 else
     IMAGE_FILE="${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}$IMG_EXT"
 fi
-
 if test 'dump' = "$IMAGE_TYPE"; then
     # Workaround for restore's non-unique /tmp/rstdir* and /tmp/rstmode*
     TMPDIR="$(mktemp -d --tmpdir "${INSTANCE_NAME}_XXXXXXXX")"
     export TMPDIR
     cleanup push "rmdir --ignore-fail-on-non-empty \"$TMPDIR\""
 fi
-
 if test 'no' = "$CDINSTALL"; then
     losetup_blockdev
     DISK_SIZE="$(expr `"$BLOCKDEV_CMD" --getsize64 "$BLOCKDEV"` / 1048576)"
@@ -70,19 +68,14 @@ if test 'no' = "$CDINSTALL"; then
         test $SWAP_SIZE -le $DISK_SIZE || \
             die 'SWAP_SIZE larger than system disk size:\n  %sMB swap > %sMB system disk\n' "$SWAP_SIZE" "$DISK_SIZE"
     fi
-
     test -f "$IMAGE_FILE" || die 'Can'\''t find image file: %s\n' "$IMAGE_FILE"
-
-    # If the image is tarball based, then we need to manually create the
-    # volumes, filesystems, etc
+    # If image is tarball based, we need to manually create volumes, FS, etc
     if test 'tarball' = "$IMAGE_TYPE" || test 'dump' = "$IMAGE_TYPE"; then
-        # Create 3 partitions, /boot, swap, & /
         format_disk0 "$BLOCKDEV"
     elif test 'qemu' = "$IMAGE_TYPE"; then
         # need a recent version of qemu for this
         "$QEMU_IMG" convert "$IMAGE_FILE" -O 'host_device' "$BLOCKDEV" >/dev/null
     fi
-
     # deploying something like a windows image, skip the rest
     ! test 'yes' = "$NOMOUNT" || exit 0
 
@@ -108,7 +101,6 @@ if test 'no' = "$CDINSTALL"; then
 
     case "$IMAGE_TYPE" in
         tarball)
-            # unpack image
             tar pzxf "$IMAGE_FILE" -C "$TARGET"
             ;;
         dump)
@@ -121,17 +113,13 @@ if test 'no' = "$CDINSTALL"; then
             fi
             ;;
     esac
-
     case "$IMAGE_TYPE" in
         tarball|dump)
             setup_fstab
             ;;
     esac
-
     ! test 'True' = "$INSTANCE_HV_serial_console" || setup_console
-
     filesystem_check
-
     if test -n "$RUN_PARTS" && test -d "$CUSTOMIZE_DIR"; then
         ROOT_DEV="$root_dev"; BOOT_DEV="$boot_dev"; IMG_SSH_KEY_URL="$IMG_SSH_KEY_URL"
         export TARGET SUITE BLOCKDEV ROOT_DEV BOOT_DEV IMAGE_TYPE IMG_SSH_KEY_URL
