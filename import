@@ -22,11 +22,7 @@ set -e
 debug set -x
 
 losetup_blockdev
-TARGET="`mktemp -d`"
-cleanup push "rmdir \"$TARGET\""
-DUMPDIR="`mktemp -d`"
-cleanup push "rm -rf \"$DUMPDIR\""
-
+mkdir_disk0_temp 'dump'
 if ! test 'yes' = "$NOMOUNT"; then
     format_disk0 "$BLOCKDEV"
     map_all

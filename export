@@ -22,14 +22,12 @@ set -e
 debug set -x
 
 losetup_blockdev
-test 'yes' = "$NOMOUNT" || map_all
-TARGET="`mktemp -d --tmpdir="${EXPORT_DIR:-${TMPDIR:-/tmp}}"`"
-cleanup push "rmdir \"$TARGET\""
-
+mkdir_disk0_temp
 if test 'yes' = "$NOMOUNT"; then
     "$QEMU_IMG" convert "$BLOCKDEV" -O qcow2 -c "${TARGET}/disk.img"
     cleanup push "rm -f \"${TARGET}/disk.img\""
 else
+    map_all
     vol_type_root="$(eval "$VOL_TYPE \"$root_dev\"")"
     test -z "$boot_dev" || vol_type_boot="$(eval "$VOL_TYPE \"$boot_dev\"")"
     for _fs in 'boot' 'root'; do

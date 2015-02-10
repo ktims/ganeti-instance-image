@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -e
 INSTANCE_NAME="$1"
 
@@ -19,12 +20,7 @@ output="$(gnt-instance activate-disks "$INSTANCE_NAME")"
 cleanup push "gnt-instance deactivate-disks \"$INSTANCE_NAME\""
 DISK_0_PATH="${output/*disk\/0\:/}"
 ! test -n "$2" || IMAGE_DIR="$2"
-
-filesystem_dev="$(map_disk0)"
-cleanup push 'unmap_disk0'
-root_dev="$(map_partition "$filesystem_dev" root)"
-boot_dev="$(map_partition "$filesystem_dev" boot)"
-
+map_all
 if test -n "$boot_dev"; then
     printf 'Creating dump from %s for boot at %s/%s-%s-boot.dump\n' "$INSTANCE_NAME" "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH"
     "$DUMP" -0 -q -z9 -f "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}-boot.dump" "$boot_dev"

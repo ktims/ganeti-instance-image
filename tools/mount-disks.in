@@ -13,15 +13,12 @@ HYPERVISOR="${info[1]}"
 DISK_COUNT="${info[2]}"
 OS_API_VERSION=20
 output="$(gnt-instance activate-disks "$INSTANCE_NAME")"
-
+cleanup push "gnt-instance deactivate-disks \"$INSTANCE_NAME\""
 DISK_0_PATH="`printf '%s' "$output" | sed -n -e '/disk\/0:/! b; s/^.*disk\/0://; p'`"
 
 . "@osdir@/@osname@/common.sh"
 
-filesystem_dev="$(map_disk0)"
-root_dev="$(map_partition "$filesystem_dev" root)"
-boot_dev="$(map_partition "$filesystem_dev" boot)"
-
+map_all
 TARGET="/tmp/${INSTANCE_NAME}_root"
 $MKDIR_P "$TARGET"
 mount_disk0

@@ -24,9 +24,7 @@ debug set -x
 ! test 'yes' = "$NOMOUNT" || exit 0
 losetup_blockdev
 map_all
-TARGET="`mktemp -d`"
-cleanup push "rmdir \"$TARGET\""
-mount_disk0
+mount_disk0 'temp'
 get_os_type
 case "$OS_TYPE" in
     debian)
@@ -81,7 +79,6 @@ if test "x$OLD_HNAME" = "x$old_name" || \
             ;;
     esac
     if test -x "${CUSTOMIZE_DIR}/zz_ddns"; then
-        TARGET="$TARGET"
         export TARGET
         "${CUSTOMIZE_DIR}/zz_ddns" -r
     fi

@@ -106,13 +106,123 @@ $CLEANUP"
     :
 }
 
+rmdir_disk0_temp() { # optional: 'dump|'
+    ! test 'dump' = "$1" || rm -rf "$DUMPDIR"
+    rmdir "$TARGET"
+    TARGET="$OLD_TARGET"
+    OLD_TARGET=''
+    export TARGET
+}
+
+mkdir_disk0_temp() { # optional: 'dump|'
+    ! test 'dump' = "$1" || DUMPDIR="`mktemp -d --tmpdir="${EXPORT_DIR:-${TMPDIR:-/tmp}}"`"
+    OLD_TARGET="$TARGET"
+    TARGET="`mktemp -d --tmpdir="${EXPORT_DIR:-${TMPDIR:-/tmp}}"`"
+    export TARGET
+    cleanup push "rmdir_disk0_temp \"$1\""
+}
+
+unmount_disk0() { # optional: 'temp|' 'dump|'
+    sync
+    test -z "$boot_dev" || umount "${TARGET}/boot"
+    umount "${TARGET}/sys" 2>/dev/null || :
+    umount "$TARGET"
+    ! test 'temp' = "$1" || rmdir_disk0_temp "$2"
+}
+
+mount_disk0() { # optional: 'temp|' 'dump|'
+    ! test 'temp' = "$1" || mkdir_disk0_temp "$2"
+    mount "$root_dev" "$TARGET"
+    if test -n "$boot_dev"; then
+        $MKDIR_P "${TARGET}/boot"
+        mount "$boot_dev" "${TARGET}/boot"
+    fi
+    cleanup push "unmount_disk0 \"$1\" \"$2\""
+}
+
+unlosetup_blockdev() {
+    if test -n "$OLD_BLOCKDEV"; then
+        "$LOSETUP" -d "$BLOCKDEV"
+        BLOCKDEV="$OLD_BLOCKDEV"
+        OLD_BLOCKDEV=''
+        export BLOCKDEV
+    fi
+}
+
 losetup_blockdev() {
+    OLD_BLOCKDEV=''
     if ! test -b "$BLOCKDEV"; then
         OLD_BLOCKDEV="$BLOCKDEV"
         BLOCKDEV="$("$LOSETUP" -sf "$BLOCKDEV")"
-        cleanup push "\"$LOSETUP\" -d \"$BLOCKDEV\""
-        cleanup push "BLOCKDEV=\"$OLD_BLOCKDEV\""
+        export BLOCKDEV
     fi
+    cleanup push 'unlosetup_blockdev'
+}
+
+unmap_disk0() { sync; $KPARTX -d -p- "$BLOCKDEV"; }
+
+map_disk0() {
+    sync
+    _filesystem_dev1_base="`
+        $KPARTX -l -p- "$BLOCKDEV" | \
+            grep -m 1 -- "-1.*$BLOCKDEV" | \
+            "$AWK" '{print $1}'
+    `"
+    test -n "$_filesystem_dev1_base" || die 'Cannot interpret kpartx output and get partition mapping\n'
+    $KPARTX -a -p- "$BLOCKDEV" >/dev/null
+    cleanup push 'unmap_disk0'
+    test -b "/dev/mapper/$_filesystem_dev1_base" || \
+        die 'Can'\''t find kpartx mapped partition: /dev/mapper/%s\n' "$_filesystem_dev1_base"
+    filesystem_dev="/dev/mapper/${_filesystem_dev1_base%-1}"
+}
+
+update_map_disk0() { sync; $KPARTX -u -p- "$BLOCKDEV"; }
+
+map_partition() {
+    _partition="$1"
+    _root_dev=''; _boot_dev=''; _swap_dev=''
+    if test 'no' = "$SWAP"; then
+        if test -n "$KERNEL_PATH"; then
+            _root_dev="${filesystem_dev}-1"
+        else
+            _boot_dev="${filesystem_dev}-1"
+            _root_dev="${filesystem_dev}-2"
+        fi
+    else
+        if test -n "$KERNEL_PATH"; then
+            _swap_dev="${filesystem_dev}-1"
+            _root_dev="${filesystem_dev}-2"
+        else
+            _boot_dev="${filesystem_dev}-1"
+            _swap_dev="${filesystem_dev}-2"
+            _root_dev="${filesystem_dev}-3"
+        fi
+    fi
+    eval "${_partition}_dev=\"\$_${_partition}_dev\""
+}
+
+unmap_partitions() {
+    for _partition in 'root' 'boot' 'swap'; do
+        eval "${_partition}_dev=''"
+    done
+}
+
+map_partitions() {
+    for _partition in 'root' 'boot' 'swap'; do
+        map_partition "$_partition"
+    done
+    cleanup push 'unmap_partitions'
+}
+
+unmap_all() {
+    unmap_partitions
+    unmap_disk0
+}
+
+map_all() {
+    map_disk0
+    map_partitions
+    cleanup push 'unmap_all'
 }
 
 disk_size() {
@@ -218,7 +328,9 @@ fs_size() {
     else
         _size=''
     fi
+    _unmap_needed=0
     if test -z "$filesystem_dev"; then
+        _unmap_needed=1
         filesystem_dev="$(map_disk0)"
         cleanup push "unmap_disk0"
     fi
@@ -239,6 +351,7 @@ fs_size() {
             esac
             ;;
     esac
+    test 0 -eq $_unmap_needed || { unmap_disk0; cleanup pop; }
 }
 
 get_os_type() {
@@ -390,69 +503,6 @@ mkfs_disk0() {
     sync
     sleep 2
 }
-
-mount_disk0() {
-    mount "$root_dev" "$TARGET"
-    cleanup push "umount \"${TARGET}/sys\" 2>/dev/null || :; umount \"$TARGET\""
-    if test -n "$boot_dev"; then
-        $MKDIR_P "${TARGET}/boot"
-        mount "$boot_dev" "${TARGET}/boot"
-        cleanup push "umount \"${TARGET}/boot\""
-    fi
-    cleanup push 'sync'
-}
-
-map_disk0() {
-    sync
-    _filesystem_dev1_base="`
-        $KPARTX -l -p- "$BLOCKDEV" | \
-            grep -m 1 -- "-1.*$BLOCKDEV" | \
-            "$AWK" '{print $1}'
-    `"
-    test -n "$_filesystem_dev1_base" || die 'Cannot interpret kpartx output and get partition mapping\n'
-    $KPARTX -a -p- "$BLOCKDEV" >/dev/null
-    cleanup push "sync; $KPARTX -d -p- \"$BLOCKDEV\""
-    _filesystem_dev="/dev/mapper/${_filesystem_dev1_base%-1}"
-    test -b "/dev/mapper/$_filesystem_dev1_base" || \
-        die 'Can'\''t find kpartx mapped partition: /dev/mapper/%s\n' "$_filesystem_dev1_base"
-    printf '%s' "$_filesystem_dev"
-}
-
-unmap_disk0() { sync; $KPARTX -d -p- "$BLOCKDEV"; cleanup pop; }
-
-update_map_disk0() { sync; $KPARTX -u -p- "$BLOCKDEV"; }
-
-map_partition() {
-    _partition="$1"
-    _root_dev=''; _boot_dev=''; _swap_dev=''
-    if test 'no' = "$SWAP"; then
-        if test -n "$KERNEL_PATH"; then
-            _root_dev="${filesystem_dev}-1"
-        else
-            _boot_dev="${filesystem_dev}-1"
-            _root_dev="${filesystem_dev}-2"
-        fi
-    else
-        if test -n "$KERNEL_PATH"; then
-            _swap_dev="${filesystem_dev}-1"
-            _root_dev="${filesystem_dev}-2"
-        else
-            _boot_dev="${filesystem_dev}-1"
-            _swap_dev="${filesystem_dev}-2"
-            _root_dev="${filesystem_dev}-3"
-        fi
-    fi
-    eval "printf '%s' \"\$_${_partition}_dev\""
-}
-
-map_all() {
-    filesystem_dev="$(map_disk0)"
-    cleanup push "unmap_disk0"
-    root_dev="$(map_partition root)"
-    boot_dev="$(map_partition boot)"
-    swap_dev="$(map_partition swap)"
-}
-
 
 setup_fstab() {
     get_os_type

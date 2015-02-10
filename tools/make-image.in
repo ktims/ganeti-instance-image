@@ -88,22 +88,10 @@ test -n "$OS_API_VERSION" || { log_error 'Error: OS_API_VERSION not set'; exit 1
 test -n "$DISK_0_PATH" || { log_error 'Error: DISK_0_PATH not set'; exit 1; }
 test -d "$IMAGE_DIR" || { log_error "Error: $IMAGE_DIR not found"; exit 1; }
 
-# Setup partitions w/ kpartx
-filesystem_dev="$(map_disk0)"
-cleanup push 'unmap_disk0'
-root_dev="$(map_partition "$filesystem_dev" root)"
-boot_dev="$(map_partition "$filesystem_dev" boot)"
-
+map_all
 case "$TYPE" in
     tarball)
-        # Make temp dir for mounting
-        TARGET="`mktemp -d`"
-        cleanup push "rmdir \"$TARGET\""
-
-        # Mount filesystems
-        mount_disk0
-
-        OLDPWD="$PWD"
+        mount_disk0 'temp'
         cd "$TARGET"
 
         log_error "Creating tarball from $INSTANCE_NAME to ${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.tar.gz"

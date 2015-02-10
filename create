@@ -62,7 +62,6 @@ fi
 if test 'no' = "$CDINSTALL"; then
     losetup_blockdev
     DISK_SIZE="$(expr `"$BLOCKDEV_CMD" --getsize64 "$BLOCKDEV"` / 1048576)"
-
     if test 'yes' = "$SWAP"; then
         test -n "$SWAP_SIZE" || die 'SWAP_SIZE not set however SWAP is enabled\n'
         test $SWAP_SIZE -le $DISK_SIZE || \
@@ -92,13 +91,7 @@ if test 'no' = "$CDINSTALL"; then
             test -n "$swap_dev" && sleep 1 && swap_uuid="$(eval "$VOL_ID \"$swap_dev\"")"
             ;;
     esac
-
-    TARGET="`mktemp -d`"
-    cleanup push "rmdir \"$TARGET\""
-
-    # mount filesystems
-    mount_disk0
-
+    mount_disk0 'temp'
     case "$IMAGE_TYPE" in
         tarball)
             tar pzxf "$IMAGE_FILE" -C "$TARGET"
