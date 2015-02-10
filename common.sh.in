@@ -551,17 +551,19 @@ EOF
 
 # This is ugly, there must be a better way [sigh]
 get_service_manager() {
-    { chroot "$TARGET" /sbin/init --version 2>/dev/null || :; } | \
-        tr '[A-Z\n]' '[a-z ]' | \
-        sed -e '
-            s/^.*\(\<systemd\>\).*$/systemd/;
-            t;
-            s/^.*\(\<upstart\>\).*$/upstart/;
-            t;
-            s/^.*\(\<openrc\>\).*$/openrc/;
-            t;
-            s/^.*$/sysv/;
-        '
+    if test -x "${TARGET}/bin/systemctl"; then
+        printf 'systemd'
+    else
+        { chroot "$TARGET" /sbin/init --version 2>/dev/null || :; } | \
+            tr '[A-Z\n]' '[a-z ]' | \
+            sed -e '
+                s/^.*\(\<upstart\>\).*$/upstart/;
+                t;
+                s/^.*\(\<openrc\>\).*$/openrc/;
+                t;
+                s/^.*$/sysv/;
+            '
+    fi
 }
 
 setup_console() {
