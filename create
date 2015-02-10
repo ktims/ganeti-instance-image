@@ -98,11 +98,11 @@ if test 'no' = "$CDINSTALL"; then
             ;;
         dump)
             root_dump="$IMAGE_FILE"
-            ( cd "$TARGET"; restore -r -y -f "$root_dump" >/dev/null )
+            ( cd "$TARGET" && restore -r -y -f "$root_dump" >/dev/null )
             if test -n "$boot_dev"; then
                 boot_dump="${IMAGE_FILE%root.dump}boot.dump"
                 test -f "$boot_dump" || die 'Can'\''t find image file: %s\n' "$boot_dump"
-                ( cd "${TARGET}/boot"; restore -r -y -f "$boot_dump" >/dev/null )
+                ( cd "${TARGET}/boot" && restore -r -y -f "$boot_dump" >/dev/null )
             fi
             ;;
     esac

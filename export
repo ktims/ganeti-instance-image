@@ -49,4 +49,4 @@ else
         fi
     done
 fi
-( cd "$TARGET"; tar -cf - . )
+( cd "$TARGET" && tar -cf - . )

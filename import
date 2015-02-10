@@ -33,14 +33,14 @@ if ! test 'yes' = "$NOMOUNT"; then
     mount_disk0
 fi
 # import dumps from tar file
-( cd "$DUMPDIR"; tar -xf - )
+( cd "$DUMPDIR" && tar -xf - )
 if test 'yes' = "$NOMOUNT"; then
     "$QEMU_IMG" convert "${DUMPDIR}/disk.img" -O 'host_device' "$BLOCKDEV"
 else
     # clean up any previous restore runs
     rm -rf /tmp/rst*
-    ( cd "$TARGET"; restore -r -y -f "${DUMPDIR}/root.dump" )
-    test -z "$boot_dev" || ( cd "${TARGET}/boot"; restore -r -y -f "${DUMPDIR}/boot.dump" )
+    ( cd "$TARGET" && restore -r -y -f "${DUMPDIR}/root.dump" )
+    test -z "$boot_dev" || ( cd "${TARGET}/boot" && restore -r -y -f "${DUMPDIR}/boot.dump" )
     setup_fstab
     ! test 'True' = "$INSTANCE_HV_serial_console" || setup_console
     rm -f "${TARGET}/etc/udev/rules.d/z"*"_persistent-net.rules"
