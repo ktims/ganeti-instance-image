@@ -550,8 +550,8 @@ setup_console() {
     fi
 }
 
-filesystem_check() {
-    test -n "$TARGET" || die 'TARGET not set for filesystem_check\n'
+filesystem_relabel() {
+    test -n "$TARGET" || die 'TARGET not set for filesystem_relabel\n'
     get_os
     case "$OPERATING_SYSTEM" in
         fedora|centos|redhat)

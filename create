@@ -119,7 +119,7 @@ if test 'no' = "$CDINSTALL"; then
             ;;
     esac
     ! test 'True' = "$INSTANCE_HV_serial_console" || setup_console
-    filesystem_check
+    filesystem_relabel
     if test -n "$RUN_PARTS" && test -d "$CUSTOMIZE_DIR"; then
         ROOT_DEV="$root_dev"; BOOT_DEV="$boot_dev"; IMG_SSH_KEY_URL="$IMG_SSH_KEY_URL"
         export TARGET SUITE BLOCKDEV ROOT_DEV BOOT_DEV IMAGE_TYPE IMG_SSH_KEY_URL
