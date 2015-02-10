@@ -93,6 +93,7 @@ DISK_COUNT="${info[2]}"
 INSTANCE_HV_kernel_path="${info[3]}"
 OS_API_VERSION=20
 ad_output="$(gnt-instance activate-disks "$INSTANCE_NAME" | sed -e 's/\:/ /g')"
+trap "gnt-instance deactivate-disks \"$INSTANCE_NAME\"" EXIT
 NODE="${ad_output[0]}"
 DISK_0_PATH="${ad_output[2]}"
 export OS_VARIANT HYPERVISOR DISK_COUNT OS_API_VERSION DISK_0_PATH INSTANCE_HV_kernel_path
@@ -104,5 +105,3 @@ else
     ssh "$NODE" "@osdir@/@osname@/tools/make-image" \
         -i "$INSTANCE_NAME" "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH" -t "$TYPE"
 fi
-
-gnt-instance deactivate-disks "$INSTANCE_NAME"
