@@ -86,9 +86,7 @@ if test 'no' = "$CDINSTALL"; then
     case "$IMAGE_TYPE" in
         tarball|dump)
             mkfs_disk0
-            root_uuid="$(eval "$VOL_ID \"$root_dev\"")"
-            test -n "$boot_dev" && sleep 1 && boot_uuid="$(eval "$VOL_ID \"$boot_dev\"")"
-            test -n "$swap_dev" && sleep 1 && swap_uuid="$(eval "$VOL_ID \"$swap_dev\"")"
+            get_uuids
             ;;
     esac
     mount_disk0 'temp'

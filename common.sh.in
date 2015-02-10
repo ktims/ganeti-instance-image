@@ -225,6 +225,12 @@ map_all() {
     cleanup push 'unmap_all'
 }
 
+get_uuids() {
+    root_uuid="$(eval "$VOL_ID \"${root_dev:-$ROOT_DEV}\"")"
+    test -z "${boot_dev:-$BOOT_DEV}" || boot_uuid="$(eval "$VOL_ID \"${boot_dev:-$BOOT_DEV}\"")"
+    test -z "${swap_dev:-$SWAP_DEV}" || swap_uuid="$(eval "$VOL_ID \"${swap_dev:-$SWAP_DEV}\"")"
+}
+
 disk_size() {
     _disk_size_action="$1"
     case "$_disk_size_action" in

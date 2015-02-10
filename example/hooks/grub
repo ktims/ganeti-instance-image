@@ -98,7 +98,7 @@ quit
 EOF
         # check to see if grub is using UUID's and replace if so
         if test -n "$(grep 'root=UUID' "${boot_dir}/menu.lst")"; then
-            root_uuid="$(eval "$VOL_ID \"$ROOT_DEV\"")"
+            get_uuids
             sed --follow-symlinks -i -e 's/\(root=UUID=\)\([a-z0-9-]*\)/\1'"$root_uuid"'/g' "${boot_dir}/menu.lst"
         fi
         # additional kernel arguments for the instance
@@ -113,7 +113,7 @@ EOF
         )" 2>/dev/null
         # check to see if grub is using UUID's and replace if so
         if test -n "$(grep 'root=UUID' "${boot_dir}/grub.cfg")"; then
-            root_uuid="$(eval "$VOL_ID \"$ROOT_DEV\"")"
+            get_uuids
             sed --follow-symlinks -i -e 's/\(root=UUID=\)\([a-z0-9-]*\)/\1'"$root_uuid"'/g' \
                 "${boot_dir}/grub.cfg"
         fi
