@@ -691,6 +691,28 @@ get_api_parameters() {
     get_api20_parameters
 }
 
+check_os_variant() {
+    if test -n "$OS_VARIANT"; then
+        test -d "$VARIANTS_DIR" || die 'OS Variants directory "%s" doesn'\''t exist\n' "$VARIANTS_DIR"
+        if ! test -f "$VARIANT_CONFIG"; then
+            if grep -qxF "$OS_VARIANT" 'variants.list'; then
+                die 'ERROR: instance-image configuration error
+  Published variant "%s" is missing its config file
+  Please create "%s" or unpublish the variant
+  (by removing "%s" from variants.list)\n' \
+                    "$OS_VARIANT" "$VARIANT_CONFIG" "$OS_VARIANT"
+            else
+                die 'Unofficial variant "%s" is unsupported
+Most probably this is a user error, forcing a wrong name
+To support this variant please create file "%s" (and add
+it to variants.list)\n' "$OS_VARIANT" "$VARIANT_CONFIG"
+            fi
+        fi
+    fi
+}
+
+source_os_variant() { ! test -f "$VARIANT_CONFIG" || . "$VARIANT_CONFIG"; }
+
 ##
 
 cleanup init
@@ -734,25 +756,9 @@ SCRIPT_NAME="$(basename "$0")"
 KERNEL_PATH="$INSTANCE_HV_kernel_path"
 VOL_ID="\"$BLKID\" -c /dev/null -o 'value' -s 'UUID'"
 VOL_TYPE="\"$BLKID\" -c /dev/null -o 'value' -s 'TYPE'"
+VARIANT_CONFIG="${VARIANTS_DIR}/${OS_VARIANT}.conf"
 
+# TODO: check_os_variant should go in "verify" when ganeti supports more than just parameters
+check_os_variant
 get_api_parameters
-IMAGE_NAME="$IMG_ID"
-
-if test -n "$OS_VARIANT"; then
-    test -d "$VARIANTS_DIR" || die 'OS Variants directory %s doesn'\''t exist\n' "$VARIANTS_DIR"
-    VARIANT_CONFIG="${VARIANTS_DIR}/${OS_VARIANT}.conf"
-    if test -f "$VARIANT_CONFIG"; then
-        . "$VARIANT_CONFIG"
-    else
-        if grep -qxF "$OS_VARIANT" variants.list; then
-            die 'ERROR: instance-image configuration error
-  Published variant %s is missing its config file
-  Please create %s or unpublish the variant
-  (by removing %s from variants.list)\n' "$OS_VARIANT" "$VARIANT_CONFIG" "$OS_VARIANT"
-        else
-            die 'Unofficial variant %s is unsupported
-Most probably this is a user error, forcing a wrong name
-To support this variant please create file %s\n' "$OS_VARIANT" "$VARIANT_CONFIG"
-        fi
-    fi
-fi
+source_os_variant
