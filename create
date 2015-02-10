@@ -84,7 +84,7 @@ if test 'no' = "$CDINSTALL"; then
     fi
 
     # deploying something like a windows image, skip the rest
-    ! test 'yes' = "$NOMOUNT" || { cleanup; exit 0; }
+    ! test 'yes' = "$NOMOUNT" || exit 0
 
     if test -n "$RUN_PARTS" && test -d "$PRE_CUSTOMIZE_DIR"; then
         export TARGET SUITE BLOCKDEV IMAGE_TYPE
