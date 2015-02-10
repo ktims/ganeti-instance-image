@@ -37,11 +37,11 @@ esac
 if ! test -z "$IMAGE_URL"; then
     cd "$CACHE_DIR"
     if ! test -e "${CACHE_DIR}/${IMAGE_NAME}-${ARCH}$IMG_EXT"; then
-        $WGET "${IMAGE_URL}/${IMAGE_NAME}-${ARCH}$IMG_EXT" >/dev/null 2>/dev/null || \
+        $WGET -O- "${IMAGE_URL}/${IMAGE_NAME}-${ARCH}$IMG_EXT" >"${IMAGE_NAME}-${ARCH}$IMG_EXT" 2>/dev/null || \
             die 'Failed to find the image on %s\n' "$IMAGE_URL"
     fi
     if test 'yes' = "$IMG_VERIFY"; then
-        $WGET "${IMAGE_URL}/${IMAGE_NAME}-${ARCH}${IMG_EXT}.sig" >/dev/null 2>/dev/null || \
+        $WGET -O- "${IMAGE_URL}/${IMAGE_NAME}-${ARCH}${IMG_EXT}.sig" >"${IMAGE_NAME}-${ARCH}${IMG_EXT}.sig" 2>/dev/null || \
             die 'Failed to find the checksum file\n'
         "$SHA1SUM" -c "${IMAGE_NAME}-${ARCH}${IMG_EXT}.sig" >/dev/null || \
             die 'Image doesn'\''t match checksum!\n'

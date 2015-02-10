@@ -10,6 +10,6 @@ debug set -x
 
 if test -n "$IMG_SSH_KEY_URL"; then
     $MKDIR_P "${TARGET}/root/.ssh"
-    $WGET -q -O "${TARGET}/root/.ssh/authorized_keys" "$IMG_SSH_KEY_URL"
+    $WGET -q -O- "$IMG_SSH_KEY_URL" >"${TARGET}/root/.ssh/authorized_keys" 2>/dev/null
     verbprint 'Succesfully injected ssh key\n'
 fi
