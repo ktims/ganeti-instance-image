@@ -189,7 +189,7 @@ The naming convention that is used is the following:
 
 * tarball:    `$IMAGE_NAME-$ARCH.tar.gz`
 * dump:       `$IMAGE_NAME-$ARCH-boot.dump` `$IMAGE_NAME-$ARCH-root.dump`
-* qemu-img:   `$IMAGE_NAME-$ARCH.img`
+* qemu:       `$IMAGE_NAME-$ARCH.img`
 
 ### Useful Scripts
 
@@ -211,7 +211,7 @@ remote host if the instance resides on a remote host. Below is the help output.
     Create an image of a ganeti instance using either a tarball, dump, or qemu
     image..
 
-    -t TYPE       Type of image, either: tarball, dump, or qemu-img
+    -t TYPE       Type of image, either: tarball, dump, or qemu
     -d PATH       Path of where to put the image
     -i INSTANCE   Name of the instance
     -n NAME       Name of the image

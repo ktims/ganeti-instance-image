@@ -31,7 +31,7 @@ Usage: $0 -n NAME -m IMAGE_DIR -a ARCH -i INSTANCE_NAME -t TYPE
 
 Create an image tarball of a ganeti instance.
 
--t TYPE           Image type, either: tarball, dump, or qemu-img
+-t TYPE           Image type, either: tarball, dump, or qemu
 -m IMAGE_DIR      Path of where to put the tarball
 -i INSTANCE_NAME  Name of the instance
 -n IMAGE_NAME     Name of the tarball image
@@ -122,9 +122,9 @@ case "$TYPE" in
         log_error "Creating dump from $INSTANCE_NAME for root at ${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}-root.dump"
         "$DUMP" -0 -q -z9 -f "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}-root.dump" "$root_dev"
         ;;
-    qemu-img)
+    qemu)
         log_error "Creating qemu image from $INSTANCE_NAME to ${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.img"
-        "$QEMU_IMG" convert -O qcow2 "$DISK_0_PATH" "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.img"
+        "$QEMU_IMG" convert -O qcow2 -c "$DISK_0_PATH" "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.img"
         ;;
     *)
         log_error "Command $TYPE not supported!"

@@ -27,7 +27,7 @@ TARGET="`mktemp -d --tmpdir="${EXPORT_DIR:-${TMPDIR:-/tmp}}"`"
 cleanup push "rmdir \"$TARGET\""
 
 if test 'yes' = "$NOMOUNT"; then
-    "$QEMU_IMG" convert "$BLOCKDEV" -O qcow2 "${TARGET}/disk.img"
+    "$QEMU_IMG" convert "$BLOCKDEV" -O qcow2 -c "${TARGET}/disk.img"
     cleanup push "rm -f \"${TARGET}/disk.img\""
 else
     vol_type_root="$(eval "$VOL_TYPE \"$root_dev\"")"
