@@ -21,6 +21,8 @@ set -e
 . ./common.sh
 debug set -x
 
+# TODO: use $IMPORT_INDEX
+
 losetup_blockdev
 mkdir_disk0_temp 'dump'
 if ! test 'yes' = "$NOMOUNT"; then
