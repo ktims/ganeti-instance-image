@@ -44,7 +44,7 @@ EOF
     exit 0
 }
 
-while getopts "hd:i:a:n:t:" _opt ; do
+while getopts "hd:i:a:n:t:" _opt; do
     case "$_opt" in
         t)
             TYPE="$OPTARG"
@@ -71,7 +71,7 @@ done
 
 #test -n "$IMAGE_DIR" || { printf 'Error: Image path not set\n'; exit 1; }
 test -n "$INSTANCE_NAME" || { printf 'Error: Instance name not set\n'; exit 1; }
-test -n "$TYPE" || printf 'Error: Image type not set\n'; exit 1; }
+test -n "$TYPE" || { printf 'Error: Image type not set\n'; exit 1; }
 
 case "$TYPE" in
     tarball|dump|qemu)
@@ -97,11 +97,11 @@ trap "gnt-instance deactivate-disks \"$INSTANCE_NAME\"" EXIT
 NODE="${ad_output[0]}"
 DISK_0_PATH="${ad_output[2]}"
 export OS_VARIANT HYPERVISOR DISK_COUNT OS_API_VERSION DISK_0_PATH INSTANCE_HV_kernel_path
-printf 'Creating image with type %s from %s in %s from node %s\n' "$TYPE" "$INSTANCE_NAME" "$IMAGE_DIR" from node "$NODE"
+printf 'Creating image with type %s from %s in %s from node %s\n' "$TYPE" "$INSTANCE_NAME" "$IMAGE_DIR" "$NODE"
 if test "x$NODE" = "x$HOSTNAME"; then
     "@osdir@/@osname@/tools/make-image" -i "$INSTANCE_NAME" \
         "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH" -t "$TYPE"
 else
-    ssh "$NODE" "@osdir@/@osname@/tools/make-image" \
+    ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "$NODE" "@osdir@/@osname@/tools/make-image" \
         -i "$INSTANCE_NAME" "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH" -t "$TYPE"
 fi
