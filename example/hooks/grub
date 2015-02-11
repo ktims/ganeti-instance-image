@@ -92,6 +92,14 @@ if ! test 'qemu' = "$IMAGE_TYPE" && \
     _setup_disk_devs
     _add_proc
     _add_devicemap
+    case "$KERNEL_ARGS" in
+	*consoleblank=0*)
+	    :
+	    ;;
+	*)
+	    KERNEL_ARGS="$KERNEL_ARGS consoleblank=0"
+	    ;;
+    esac
     if test -e "${boot_dir}/menu.lst"; then
         grub="$(chroot "$TARGET" which grub)"
         # install grub to the block device
