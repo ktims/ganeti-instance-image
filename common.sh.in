@@ -455,47 +455,57 @@ EOF
     fi
 }
 
+_parted_cmd() {
+    _firstarg="$1"
+    shift
+    "$PARTED" "$_firstarg" --script -- "$@"
+}
+
 format_disk0_parted() {
-    _parted_cmd="\"$PARTED\" \"$1\" --script --"
-    if test 'yes' = "$SWAP" && test -z "$KERNEL_PATH"; then
-        # Create three partitions:
-        # 1 - $BOOT_SIZE /boot, bootable
-        # 2 - Size of Memory, swap
-        # 3 - Rest
-        eval "
-            $_parted_cmd mklabel msdos
-            $_parted_cmd mkpart primary 0% ${BOOT_SIZE}M
-            $_parted_cmd mkpart primary ${BOOT_SIZE}M `expr $BOOT_SIZE + $SWAP_SIZE || :`M
-            $_parted_cmd mkpart primary `expr $BOOT_SIZE + $SWAP_SIZE || :`M 100%
-            $_parted_cmd set 1 boot on
-        "
-    elif test 'no' = "$SWAP" && test -z "$KERNEL_PATH"; then
-        # Create two partitions:
-        # 1 - $BOOT_SIZE /boot, bootable
-        # 2 - Rest
-        eval "
-            $_parted_cmd mklabel msdos
-            $_parted_cmd mkpart primary 0% ${BOOT_SIZE}M
-            $_parted_cmd mkpart primary ${BOOT_SIZE}M 100%
-            $_parted_cmd set 1 boot on
-        "
-    elif test 'yes' = "$SWAP" && test -n "$KERNEL_PATH"; then
-        # Create two partitions:
-        # 1 - Size of Memory, swap
-        # 2 - Rest
-        eval "
-            $_parted_cmd mklabel msdos
-            $_parted_cmd mkpart primary 0% ${SWAP_SIZE}M
-            $_parted_cmd mkpart primary ${SWAP_SIZE}M 100%
-        "
-    elif test 'no' = "$SWAP" && test -n "$KERNEL_PATH"; then
-        # Create one partition:
-        # 1 - Whole
-        eval "
-            $_parted_cmd mklabel msdos
-            $_parted_cmd mkpart primary 0% 100%
-        "
+    _disk0="$1"
+    _part1=''
+    _part2=''
+    _part3=''
+    if test -n "$KERNEL_PATH"; then
+        if test 'no' = "$SWAP"; then
+            # 1 - [all]
+            _part1="0% 100%"
+        else
+            # 1 - swap (size of memory)
+            # 2 - [the rest]
+            _part1="0% ${SWAP_SIZE}M"
+            _part2="${SWAP_SIZE}M 100%"
+        fi
+    else
+        if test 'no' = "$SWAP"; then
+            # 1 - /boot, bootable ($BOOT_SIZE)
+            # 2 - [the rest]
+            _part1="0% ${BOOT_SIZE}M"
+            _part2="${BOOT_SIZE}M 100%"
+        else
+            # 1 - /boot, bootable ($BOOT_SIZE)
+            # 2 - swap (size of memory)
+            # 3 - [the rest]
+            _boot_and_swap=`expr $BOOT_SIZE + $SWAP_SIZE || :`
+            _part1="0% ${BOOT_SIZE}M"
+            _part2="${BOOT_SWAP}M ${_boot_and_swap}M"
+            _part3="${_boot_and_swap}M 100%"
+        fi
     fi
+
+    _parted_cmd "$_disk0" 'mklabel' 'msdos'
+    for _part in _part1 _part2 _part3; do
+        eval "
+            if test -n \"\$$_part\"; then
+                _parted_cmd \"\$_disk0\" 'mkpart' 'primary' \$$_part
+            else
+                break
+            fi
+        "
+    done
+    test -n "$KERNEL_PATH" || _parted_cmd "$_disk0" 'set' 1 'boot' 'on'
+}
+
 }
 
 mkfs_disk0() {
