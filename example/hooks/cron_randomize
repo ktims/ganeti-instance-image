@@ -1,22 +1,62 @@
 #!/bin/bash
 
+# Copyright (C) 2011-2015 Greek Research and Technology Network
 #
-# Copyright (C) 2011 Greek Research and Technology Network
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
 #
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+#
+# This is an example script that randomises the cron job start-times.
 
 set -e
 . ./common.sh
 debug set -x
 
-n="`od -An -N1 -t u1 '/dev/urandom'`"
-min=`expr $n % 30 || :`
-cat >"${TARGET}/etc/crontab" <<EOF
-SHELL=/bin/sh
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-
-# m h dom mon dow user  command
-$min * * * *      root    cd / && run-parts --report cron.hourly
-`expr $min + 7` 6 * * *  root    test -x /usr/sbin/anacron || ( cd / && run-parts --report cron.daily )
-`expr $min + 13` 6 * * 7 root    test -x /usr/sbin/anacron || ( cd / && run-parts --report cron.weekly )
-`expr $min + 24` 6 1 * * root    test -x /usr/sbin/anacron || ( cd / && run-parts --report cron.monthly )
-EOF
+processed_one=0
+min=$(expr `od -An -N1 -t u1 '/dev/urandom' || :`)
+if test -s "${TARGET}/etc/crontab"; then
+    tempfile="`mktemp`"
+    cleanup push "rm -f \"$tempfile\" 2>/dev/null"
+    while IFS= read -r _first_field _rest_of_line; do
+        if printf '%s' "$_first_field" | grep -qxF '[0-9]\+'; then
+            printf '%d %s\n' "`expr \( $min + $_first_field \) % 60 || :`" "$_rest_of_line"
+        elif test -z "$_rest_of_line"; then
+            printf '%s\n' "$_first_field"
+        else
+            printf '%s %s\n' "$_first_field" "$_rest_of_line"
+        fi
+    done <"${TARGET}/etc/crontab" >"$tempfile" && mv -f "$tempfile" "${TARGET}/etc/crontab"
+    cleanup pop
+    processed_one=1
+fi
+if test -s "${TARGET}/etc/anacrontab"; then
+    tempfile="`mktemp`"
+    cleanup push "rm -f \"$tempfile\" 2>/dev/null"
+    while IFS= read -r _first_field _second_field _rest_of_line; do
+        if printf '%s' "$_second_field" | grep -qxF '[0-9]\+'; then
+            printf '%d %d %s\n' "$_first_field" "`expr \( $min + $_second_field \) % 60 || :`" "$_rest_of_line"
+        elif test -z "$_rest_of_line"; then
+            if test -z "$_second_field"; then
+                printf '%s\n' "$_first_field"
+            else
+                printf '%s %s\n' "$_first_field" "$_second_field"
+            fi
+        else
+            printf '%s %s %s\n' "$_first_field" "$_second_field" "$_rest_of_line"
+        fi
+    done <"${TARGET}/etc/anacrontab" >"$tempfile" && mv -f "$tempfile" "${TARGET}/etc/anacrontab"
+    cleanup pop
+    processed_one=1
+fi
+test 1 -eq $processed_one || verbprint 'No {ana,}crontab with any content was found or processed...\n'
