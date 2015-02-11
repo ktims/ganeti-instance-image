@@ -337,7 +337,7 @@ fs_size() {
     _unmap_needed=0
     if test -z "$filesystem_dev"; then
         _unmap_needed=1
-        filesystem_dev="$(map_disk0)"
+        map_disk0
         cleanup push "unmap_disk0"
     fi
     _partdev="${filesystem_dev}-$_partnum"
