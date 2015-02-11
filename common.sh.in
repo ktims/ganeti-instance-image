@@ -511,7 +511,7 @@ dump_extract() {
     rm -rf "${TMPDIR:-/tmp}/rst"* # clean up any previous restore runs
     test -f "$_root_dump" || die 'Can'\''t find image file "%s"\n' "$_root_dump"
     ( cd "$TARGET" && restore -r -y -f "$_root_dump" >/dev/null )
-    if test -n "$_boot_dump"; then
+    if test -n "$boot_dev"; then
         test -f "$_boot_dump" || die 'Can'\''t find image file "%s"\n' "$_boot_dump"
         ( cd "${TARGET}/boot" && restore -r -y -f "$_boot_dump" >/dev/null )
     fi
