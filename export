@@ -32,8 +32,8 @@ if test 'yes' = "$NOMOUNT"; then
     cleanup push "rm -f \"${TARGET}/disk.img\""
 else
     map_all
-    vol_type_root="$(eval "$VOL_TYPE \"$root_dev\"")"
-    test -z "$boot_dev" || vol_type_boot="$(eval "$VOL_TYPE \"$boot_dev\"")"
+    vol_type_root="$(eval "$VOL_TYPE \"${root_dev:-$ROOT_DEV}\"")"
+    test -z "$boot_dev" || vol_type_boot="$(eval "$VOL_TYPE \"${boot_dev:-$BOOT_DEV}\"")"
     for _fs in 'boot' 'root'; do
         eval "_dev=\"\$${_fs}_dev\""
         eval "_vol_type=\"\$vol_type_$_fs\""
