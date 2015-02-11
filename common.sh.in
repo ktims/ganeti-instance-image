@@ -777,6 +777,7 @@ check_api20_parameters() {
             ;;
     esac
     test -n "$OSP_IMG_ID" || die 'Missing OS image ID (OSP_IMG_ID),\n'
+    # $OSP_IMG_PASSWD is optional...
 }
 
 check_api_parameters() {
@@ -814,6 +815,7 @@ get_api20_parameters() {
     IMG_ID="$OSP_IMG_ID"; IMAGE_NAME="$IMG_ID" # backwards-compatibility, historical naming
     IMG_FORMAT="$OSP_IMG_FORMAT"; IMAGE_TYPE="$IMG_FORMAT" # backwards-compatibility, historical naming
     IMG_SSH_KEY_URL="$OSP_IMG_SSH_KEY_URL"
+    IMG_PASSWD="$OSP_IMG_PASSWD"
 }
 
 get_api_parameters() {

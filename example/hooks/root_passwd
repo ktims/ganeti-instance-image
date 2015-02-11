@@ -1,0 +1,53 @@
+#!/bin/sh
+
+# Copyright (C) 2011,2015 Greek Research and Technology Network
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+# TODO:
+#
+# * The embedded python code has been boiled down to a fragment from
+#   hashpwd.py (from synnefo). See if possible to clone it in shell
+#   with basic exec-calls, rather than invoking python.
+
+set -e
+. ./common.sh
+debug set -x
+
+HASH="`
+    cat <<EOF | python
+import passlib.hash
+from string import ascii_letters, digits
+from random import choice
+def random_salt(length=8):
+    pool = ascii_letters + digits + "/" + "."
+    return ''.join(choice(pool) for i in range(length))
+print passlib.hash.sha512_crypt.encrypt('${IMG_PASSWD}', rounds=5000, implicit_rounds=True,
+ salt=random_salt())
+EOF
+`"
+
+if test -e "${TARGET}/etc/shadow" && test -n "$HASH"; then
+    printerr 'Setting root password...\n'
+    SHADOW_TMP="$(mktemp --tmpdir="${TARGET}/etc")"
+    printf 'root:%s:15103:0:99999:7:::\n' "$HASH" >"$SHADOW_TMP"
+    grep -v 'root' "${TARGET}/etc/shadow" >>"$SHADOW_TMP"
+    cat "$SHADOW_TMP" >"${TARGET}/etc/shadow"
+    cleanup push "rm \"$SHADOW_TMP\""
+    printerr 'Root password changed successfully\n'
+else
+    die 'Couldn'\''t change root password\n'
+fi
