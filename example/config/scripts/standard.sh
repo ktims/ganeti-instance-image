@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/bin/sh
+
 export LANG="en_US.UTF-8"
 
 update-alternatives --set editor /usr/bin/vim.basic
