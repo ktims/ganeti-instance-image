@@ -29,14 +29,16 @@ DSA_KEY='/etc/ssh/ssh_host_dsa_key'
 if test -e "${TARGET}/etc/debian_version"; then
     verbprint 'Debian/Ubuntu: replace existing ssh keys\n'
     rm -f "${TARGET}/$HOST_KEY" 2>/dev/null || :
-    if rm -f "${TARGET}/$RSA_KEY"* 2>/dev/null; then
+    if ls "${TARGET}/$RSA_KEY"* >/dev/null 2>&1; then
+        rm -f "${TARGET}/$RSA_KEY"*
         ssh-keygen -t 'rsa' -q -N '' -f "${TARGET}/$RSA_KEY"
     fi
-    if rm -f "${TARGET}/$DSA_KEY"* 2>/dev/null; then
+    if ls "${TARGET}/$DSA_KEY"* >/dev/null 2>&1; then
+        rm -f "${TARGET}/$DSA_KEY"*
         ssh-keygen -t 'dsa' -q -N '' -f "${TARGET}/$DSA_KEY"
     fi
 else
     for _key in "$HOST_KEY" "$RSA_KEY" "$DSA_KEY"; do
-        rm -f "${TARGET}/$_key"* 2>/dev/null || :
+        ! ls "${TARGET}/$_key"* >/dev/null 2>&1 || rm -f "${TARGET}/$_key"*
     done
 fi
