@@ -21,32 +21,32 @@ set -e
 . ./common.sh
 debug set -x
 
+# TODO:
+# * use $EXPORT_INDEX
+
 losetup_blockdev
+test -z "$EXP_SIZE_FD" || "$BLOCKDEV_CMD" --getsize64 "$BLOCKDEV" >&$EXP_SIZE_FD
 mkdir_disk0_temp
 if test 'yes' = "$NOMOUNT"; then
-    "$QEMU_IMG" convert "$BLOCKDEV" -O qcow2 -c "${TARGET}/disk.img"
+    "$QEMU_IMG" convert "$BLOCKDEV" -O 'qcow2' -c "${TARGET}/disk.img"
     cleanup push "rm -f \"${TARGET}/disk.img\""
 else
     map_all
     vol_type_root="$(eval "$VOL_TYPE \"$root_dev\"")"
     test -z "$boot_dev" || vol_type_boot="$(eval "$VOL_TYPE \"$boot_dev\"")"
     for _fs in 'boot' 'root'; do
-        # use indirect reference to make the variables dynamic (these are a mess, fix in an
-        # upcoming commit)
-        dev="$(eval "echo \${$(echo ${_fs}_dev)"})"
-        vol_type="$(eval echo \$vol_type_${_fs})"
-        test -n "$vol_type" || test -z "$dev" || die 'Unable to find %s filesystem type at %s\n' "$_fs" "$dev"
-        if test -n "$dev"; then
-            case "$vol_type" in
-                ext3|ext2|ext4)
-                    "$DUMP" -0 -q -z9 -f "${TARGET}/${_fs}.dump" "$dev"
-                    cleanup push "rm -f \"${TARGET}/${_fs}.dump\""
-                    ;;
-                *)
-                    die '%s is not a supported filesystem. Please use ext{2,3,4}\n' "$_fs"
-                    ;;
-            esac
-        fi
+        eval "_dev=\"\$${_fs}_dev\""
+        eval "_vol_type=\"\$vol_type_$_fs\""
+        test -n "$_vol_type" && test -n "$_dev" || die 'Unable to find "%s" filesystem type at "%s"\n' "$_fs" "$_dev"
+        case "$_vol_type" in
+            ext2|ext3|ext4)
+                "$DUMP" -0 -q -z9 -f "${TARGET}/${_fs}.dump" "$_dev"
+                cleanup push "rm -f \"${TARGET}/${_fs}.dump\""
+                ;;
+            *)
+                die '%s is not a supported filesystem. Please use ext{2,3,4}\n' "$_fs"
+                ;;
+        esac
     done
 fi
 ( cd "$TARGET" && tar -cf - . )
