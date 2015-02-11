@@ -641,6 +641,117 @@ filesystem_relabel() {
     esac
 }
 
+download_imagefile() {
+    IMAGE_FILENAME="${IMAGE_NAME}-${ARCH}$IMG_EXT"
+    IMAGE_FILE="${CACHE_DIR}/$IMAGE_FILENAME"
+    if test -n "$IMAGE_URL"; then
+        _pwd="$(pwd)"
+        cd "$CACHE_DIR"
+        if ! test -e "$IMAGE_FILE"; then
+            $WGET -O- "${IMAGE_URL}/$IMAGE_FILENAME" >"$IMAGE_FILENAME" 2>/dev/null || \
+                die 'Failed to find the image at "%s"\n' "$IMAGE_URL"
+            ! test 'yes' = "$IMG_CLEANUP" || cleanup push "rm -f \"$IMAGE_FILE\""
+        fi
+        if test 'yes' = "$IMG_VERIFY"; then
+            rm -f "${IMAGE_FILENAME}.sig" >/dev/null 2>&1 || :
+            $WGET -O- "${IMAGE_URL}/${IMAGE_FILENAME}.sig" >"${IMAGE_FILENAME}.sig" 2>/dev/null || \
+                die 'Failed to find the checksum file at "%s"\n' "$IMAGE_URL"
+            ! test 'yes' = "$IMG_CLEANUP" || cleanup push "rm -f \"${IMAGE_FILE}.sig\""
+            "$SHA1SUM" -c "${IMAGE_FILENAME}.sig" >/dev/null || \
+                die 'Image doesn'\''t match checksum!\n'
+        fi
+        cd "$_pwd"
+    fi
+}
+
+use_unique_tmpdir() {
+    OLD_TMPDIR="$TMPDIR"
+    TMPDIR="$(mktemp -d --tmpdir "${INSTANCE_NAME}_XXXXXXXX")"
+    export TMPDIR
+    cleanup push "rm -fr \"$TMPDIR\"; TMPDIR=\"$OLD_TMPDIR\"; export TMPDIR"
+}
+
+check_os_variant() {
+    if test -n "$OS_VARIANT"; then
+        test -d "$VARIANTS_DIR" || die 'OS Variants directory "%s" doesn'\''t exist\n' "$VARIANTS_DIR"
+        if ! test -f "$VARIANT_CONFIG"; then
+            if grep -qxF "$OS_VARIANT" 'variants.list'; then
+                die 'ERROR: instance-image configuration error
+  Published variant "%s" is missing its config file
+  Please create "%s" or unpublish the variant
+  (by removing "%s" from variants.list)\n' \
+                    "$OS_VARIANT" "$VARIANT_CONFIG" "$OS_VARIANT"
+            else
+                die 'Unofficial variant "%s" is unsupported
+Most probably this is a user error, forcing a wrong name
+To support this variant please create file "%s" (and add
+it to variants.list)\n' "$OS_VARIANT" "$VARIANT_CONFIG"
+            fi
+        fi
+    fi
+}
+
+source_os_variant() { ! test -f "$VARIANT_CONFIG" || . "$VARIANT_CONFIG"; }
+
+change_hostname() {
+    case "$OS_TYPE" in
+        debian)
+            HNAME="${TARGET}/etc/hostname"
+            ;;
+        redhat)
+            HNAME="${TARGET}/etc/sysconfig/network"
+            ;;
+        suse)
+            HNAME="${TARGET}/etc/HOSTNAME"
+            ;;
+        gentoo)
+            HNAME="${TARGET}/etc/conf.d/hostname"
+            # baselayout-2.x support
+            if test -d "${TARGET}/usr/share/openrc"; then
+                HOSTNAMEVAR='hostname'
+            else
+                HOSTNAMEVAR='HOSTNAME'
+            fi
+            ;;
+    esac
+    case "$OS_TYPE" in
+        redhat|gentoo)
+            # syntax-highlighting glitch (at least in emacs) - comment v--THE BELOW LINES--v when editing
+            OLD_HNAME="$( sed --follow-symlinks -n -e '
+                s/^[ \t]*'"$HOSTNAMEVAR"'=[ \t]*\(.*[^ \t]\)[ \t]*$/\1/;
+                t PRINT;
+                b;
+                : PRINT;
+                s/^"\([^"]*\)".*$/\1/;
+                p;
+                q;
+            ' "$HNAME" )"
+            ;;
+        *)
+            OLD_HNAME="$(cat "$HNAME")"
+            ;;
+    esac
+    if test "x$OLD_HNAME" = "x$old_name" || \
+        test "x${OLD_HNAME}.$`printf '%s' "$old_name" | cut -d. -f2,3`" = "x$old_name"; then
+        case "$OS_TYPE" in
+            debian|suse)
+                printf '%s\n' "$instance" >"$HNAME"
+                ;;
+            redhat|gentoo)
+                sed --follow-symlinks -i -e "
+                    s/HOSTNAME=\"$OLD_HNAME\"/${HOSTNAMEVAR}=\"$instance\"/
+                    t;
+                    s/HOSTNAME=${OLD_HNAME}/${HOSTNAMEVAR}=\"$instance\"/;
+                " "$HNAME"
+                ;;
+        esac
+        ! test -x "${CUSTOMIZE_DIR}/zz_ddns" || "${CUSTOMIZE_DIR}/zz_ddns" -r
+    else
+        die 'Cannot rename from "%s" to "%s":
+Instance has a different hostname "%s"\n' "$old_name" "$instance" "$OLD_HNAME"
+    fi
+}
+
 check_api10_parameters() {
     test -n "$INSTANCE_NAME" && test -n "$HYPERVISOR" && test -n "$DISK_COUNT" || \
         die 'Missing OS API Variable:\n(INSTANCE_NAME, HYPERVISOR or DISK_COUNT)\n'
@@ -710,58 +821,6 @@ get_api_parameters() {
     get_api10_parameters
     get_api20_parameters
 }
-
-download_imagefile() {
-    IMAGE_FILENAME="${IMAGE_NAME}-${ARCH}$IMG_EXT"
-    IMAGE_FILE="${CACHE_DIR}/$IMAGE_FILENAME"
-    if test -n "$IMAGE_URL"; then
-        _pwd="$(pwd)"
-        cd "$CACHE_DIR"
-        if ! test -e "$IMAGE_FILE"; then
-            $WGET -O- "${IMAGE_URL}/$IMAGE_FILENAME" >"$IMAGE_FILENAME" 2>/dev/null || \
-                die 'Failed to find the image at "%s"\n' "$IMAGE_URL"
-            ! test 'yes' = "$IMG_CLEANUP" || cleanup push "rm -f \"$IMAGE_FILE\""
-        fi
-        if test 'yes' = "$IMG_VERIFY"; then
-            rm -f "${IMAGE_FILENAME}.sig" >/dev/null 2>&1 || :
-            $WGET -O- "${IMAGE_URL}/${IMAGE_FILENAME}.sig" >"${IMAGE_FILENAME}.sig" 2>/dev/null || \
-                die 'Failed to find the checksum file at "%s"\n' "$IMAGE_URL"
-            ! test 'yes' = "$IMG_CLEANUP" || cleanup push "rm -f \"${IMAGE_FILE}.sig\""
-            "$SHA1SUM" -c "${IMAGE_FILENAME}.sig" >/dev/null || \
-                die 'Image doesn'\''t match checksum!\n'
-        fi
-        cd "$_pwd"
-    fi
-}
-
-use_unique_tmpdir() {
-    OLD_TMPDIR="$TMPDIR"
-    TMPDIR="$(mktemp -d --tmpdir "${INSTANCE_NAME}_XXXXXXXX")"
-    export TMPDIR
-    cleanup push "rm -fr \"$TMPDIR\"; TMPDIR=\"$OLD_TMPDIR\"; export TMPDIR"
-}
-
-check_os_variant() {
-    if test -n "$OS_VARIANT"; then
-        test -d "$VARIANTS_DIR" || die 'OS Variants directory "%s" doesn'\''t exist\n' "$VARIANTS_DIR"
-        if ! test -f "$VARIANT_CONFIG"; then
-            if grep -qxF "$OS_VARIANT" 'variants.list'; then
-                die 'ERROR: instance-image configuration error
-  Published variant "%s" is missing its config file
-  Please create "%s" or unpublish the variant
-  (by removing "%s" from variants.list)\n' \
-                    "$OS_VARIANT" "$VARIANT_CONFIG" "$OS_VARIANT"
-            else
-                die 'Unofficial variant "%s" is unsupported
-Most probably this is a user error, forcing a wrong name
-To support this variant please create file "%s" (and add
-it to variants.list)\n' "$OS_VARIANT" "$VARIANT_CONFIG"
-            fi
-        fi
-    fi
-}
-
-source_os_variant() { ! test -f "$VARIANT_CONFIG" || . "$VARIANT_CONFIG"; }
 
 ##
 
