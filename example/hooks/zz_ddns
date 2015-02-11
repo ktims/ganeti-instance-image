@@ -32,7 +32,7 @@ while getopts 'r' _opt; do
     ! test 'r' = "$_opt" || RENAME='true'
 done
 
-debian_setup() {
+_debian_setup() {
     _dhclient_conf=''
     if test -f "${TARGET}/etc/dhcp/dhclient.conf"; then
         _dhclient_conf="${TARGET}/etc/dhcp/dhclient.conf"
@@ -48,7 +48,7 @@ debian_setup() {
     fi
 }
 
-redhat_setup() {
+_redhat_setup() {
     test -f "${TARGET}/etc/sysconfig/network-scripts/ifcfg-eth0" || die 'Missing ifcfg-eth0 file\n'
     if test -n "$FQDN" && test -z "$RENAME"; then
         printf 'DHCP_HOSTNAME=%s' "$SHORT_NAME" >>"${TARGET}/etc/sysconfig/network-scripts/ifcfg-eth0"
@@ -57,13 +57,15 @@ redhat_setup() {
     fi
 }
 
-gentoo_setup() { verbprint 'no action needed for ddns\n'; }
+_gentoo_setup() { verbprint 'no action needed for ddns\n'; }
 
-suse_setup() { verbprint 'untested for suse\n'; }
+_suse_setup() { verbprint 'untested for suse\n'; }
 
 get_os_type
-if test $NIC_COUNT -gt 0 && test -n "$OS_TYPE"; then
-    "${OS_TYPE}_setup"
-else
+if test 0 -lt $NIC_COUNT; then
+    die 'No nics defined\n'
+elif test -z "$OS_TYPE"; then
     die 'Unsupported OS_TYPE\n'
+else
+    "_${OS_TYPE}_setup"
 fi
