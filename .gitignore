@@ -11,10 +11,8 @@
 
 # built scripts
 /common.sh
-tools/ganeti-image
-tools/make-dump
+tools/gnt-disk-tool
 tools/make-image
-tools/make-qemu-img
 tools/mount-disks
 tools/umount-disks
 

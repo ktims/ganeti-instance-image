@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Copyright (C) 2012 Oregon State University
 #
@@ -19,102 +19,104 @@
 
 set -e
 
-test -z "$GANETI_DEBUG" || set -x
-IMAGE_DIR2=
-INSTANCE_NAME=
-IMAGE_NAME2=
-ARCH2=
+# presets
+IMAGE_TYPE=''
+IMAGE_DIR=''
+IMAGE_NAME=''
+ARCH=''
+SCRIPT_NAME="$(basename "$0")"
+INSTANCE_NAME=''
 
+# functions
 run_help() {
     cat <<EOF
-Usage: $0 -n NAME -m IMAGE_DIR -a ARCH -i INSTANCE_NAME -t TYPE
+Usage: $SCRIPT_NAME [OPTIONS] INSTANCE_NAME
 
-Create an image tarball of a ganeti instance.
+Create an image of a ganeti instance using either a tarball, dump,
+or qemu image.
 
--t TYPE           Image type, either: tarball, dump, or qemu
--m IMAGE_DIR      Path of where to put the tarball
--i INSTANCE_NAME  Name of the instance
--n IMAGE_NAME     Name of the tarball image
--a ARCH           Architecture of the image
+ARGS:
+ INSTANCE_NAME    Name of the instance
 
-This is a helper utility for the ganeti-image script
+OPTIONS:
+ -t IMAGE_TYPE    Image type, either: tarball, dump, or qemu
+ -d IMAGE_DIR     Path of where to put the image
+ -n IMAGE_NAME    Name of the image
+ -a ARCH          Architecture of the image
 EOF
-    exit 0
 }
 
-while getopts ':hi:a:n:m:t:' _opt ; do
+# getopts
+while getopts 't:d:n:a:h' _opt; do
     case "$_opt" in
         t)
-            TYPE="$OPTARG"
+            IMAGE_TYPE="$OPTARG"
             ;;
-        m)
-            IMAGE_DIR2="$OPTARG"
-            ;;
-        i)
-            INSTANCE_NAME="$OPTARG"
+        d)
+            IMAGE_DIR="$OPTARG"
             ;;
         n)
-            IMAGE_NAME2="$OPTARG"
+            IMAGE_NAME="$OPTARG"
             ;;
         a)
-            ARCH2="$OPTARG"
+            ARCH="$OPTARG"
             ;;
         h)
             run_help
+            exit 0
             ;;
         *)
+            run_help
+            exit 1
             ;;
     esac
 done
+INSTANCE_NAME="$1"
 
+# sanity checks
+test -n "$INSTANCE_NAME" || die 'Error: INSTANCE_NAME not set\n'
+test -n "$IMAGE_TYPE" || die 'Error: IMAGE_TYPE not set\n'
+test -n "$IMAGE_DIR" || die 'Error: IMAGE_DIR not set\n'
+test -d "$IMAGE_DIR" || die 'Error: IMAGE_DIR "%s" not found\n' "$IMAGE_DIR"
+test -n "$IMAGE_NAME" || die 'Error: IMAGE_NAME not set\n'
+test -n "$ARCH" || die 'Error: ARCH not set\n'
+test -n "$DISK_0_PATH" || die 'Error: DISK_0_PATH not set\n'
+test -n "$OS_VARIANT" || die 'Error: OS_VARIANT not set\n'
+test -n "$HYPERVISOR" || die 'Error: HYPERVISOR not set\n'
+test -n "$DISK_COUNT" || die 'Error: DISK_COUNT not set\n'
+test -n "$INSTANCE_HV_kernel_path" || die 'Error: INSTANCE_HV_kernel_path not set\n'
+test -n "$OS_API_VERSION" || die 'Error: OS_API_VERSION not set\n'
+
+# source functions
 . "@osdir@/@osname@/common.sh"
+debug set -x
 
-# Set overrides
-test -z "$IMAGE_DIR2" || IMAGE_DIR="$IMAGE_DIR2"
-test -z "$IMAGE_NAME2" || IMAGE_NAME="$IMAGE_NAME2"
-test -z "$ARCH2" || ARCH="$ARCH2"
-
-# Sanity checks
-test -n "$IMAGE_DIR" || { log_error 'Error: IMAGE_DIR not set'; exit 1; }
-test -n "$TYPE" || { log_error 'Error: Image type not set'; exit 1; }
-test -n "$INSTANCE_NAME" || { log_error 'Error: INSTANCE_NAME not set'; exit 1; }
-test -n "$INSTANCE_HV_kernel_path" || { log_error 'Error: INSTANCE_HV_kernel_path not set'; exit 1; }
-test -n "$IMAGE_NAME" || { log_error 'Error: IMAGE_NAME not set'; exit 1; }
-test -n "$ARCH" || { log_error 'Error: ARCH not set'; exit 1; }
-test -n "$OS_VARIANT" || { log_error 'Error: OS_VARIANT not set'; exit 1; }
-test -n "$HYPERVISOR" || { log_error 'Error: HYPERVISOR not set'; exit 1; }
-test -n "$DISK_COUNT" || { log_error 'Error: DISK_COUNT not set'; exit 1; }
-test -n "$OS_API_VERSION" || { log_error 'Error: OS_API_VERSION not set'; exit 1; }
-test -n "$DISK_0_PATH" || { log_error 'Error: DISK_0_PATH not set'; exit 1; }
-test -d "$IMAGE_DIR" || { log_error "Error: $IMAGE_DIR not found"; exit 1; }
-
+# main
 map_all
-case "$TYPE" in
+case "$IMAGE_TYPE" in
     tarball)
         mount_disk0 'temp'
         cd "$TARGET"
-
-        log_error "Creating tarball from $INSTANCE_NAME to ${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.tar.gz"
-        if test -x '/usr/bin/pigz'; then
-            tar -I '/usr/bin/pigz' --numeric-owner -cpf "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.tar.gz" .
+        verbprint 'Creating tarball from %s to %s/%s-%s.tar.gz\n' "$INSTANCE_NAME" "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH"
+        if test -x /usr/bin/pigz; then
+            tar -I /usr/bin/pigz --numeric-owner -cpf "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.tar.gz" .
         else
             tar --numeric-owner -zcpf "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.tar.gz" .
         fi
         ;;
     dump)
         if test -n "$boot_dev"; then
-            log_error "Creating dump from $INSTANCE_NAME for boot at ${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}-boot.dump"
-            "$DUMP" -0 -q -z9 -f "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}-boot.dump" "$boot_dev" 2> /dev/null
+            verbprint 'Creating dump from %s for boot at %s/%s-%s-boot.dump\n' "$INSTANCE_NAME" "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH"
+            "$DUMP" -0 -q -z9 -f "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}-boot.dump" "$boot_dev" 2>/dev/null
         fi
-
-        log_error "Creating dump from $INSTANCE_NAME for root at ${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}-root.dump"
-        "$DUMP" -0 -q -z9 -f "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}-root.dump" "$root_dev"
+        verbprint 'Creating dump from %s for boot at %s/%s-%s-root.dump\n' "$INSTANCE_NAME" "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH"
+        "$DUMP" -0 -q -z9 -f "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}-root.dump" "$root_dev" 2>/dev/null
         ;;
     qemu)
-        log_error "Creating qemu image from $INSTANCE_NAME to ${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.img"
+        verbprint 'Creating qemu image from %s to %s/%s-%s.img\n' "$INSTANCE_NAME" "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH"
         "$QEMU_IMG" convert -O qcow2 -c "$DISK_0_PATH" "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.img"
         ;;
     *)
-        log_error "Command $TYPE not supported!"
+        die 'Command "%s" not supported!\n' "$IMAGE_TYPE"
         ;;
 esac

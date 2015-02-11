@@ -1,0 +1,143 @@
+#!/bin/sh
+
+# Copyright (C) 2012 Oregon State University
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+set -e
+test -z "$GANETI_DEBUG" || set -x
+
+# presets
+SUBCOMMAND='make-image'
+IMAGE_TYPE=''
+IMAGE_DIR=''
+IMAGE_NAME=''
+ARCH=''
+SCRIPT_NAME="$(basename "$0")"
+INSTANCE_NAME=''
+HOSTNAME="`hostname`"
+
+# functions
+run_help() {
+    cat <<EOF
+Usage: $SCRIPT_NAME [OPTIONS] INSTANCE_NAME
+
+Wrapper for ganeti-instance-image sub-commands.
+
+ARGS:
+ INSTANCE_NAME    Name of the instance
+
+OPTIONS:
+ -c SUBCOMMAND    Which subcommand to use: (def: make-image)
+                   make-image, mount-disks, umount-disks
+ -t IMAGE_TYPE    Type of image, either: tarball, dump, or qemu
+ -d IMAGE_DIR     Path of where to put the image
+ -n IMAGE_NAME    Name of the image
+ -a ARCH          Architecture of the image
+
+This utility must be used on the master node. All optional args will
+have defaults if you do not set them.
+EOF
+}
+
+# getopts
+while getopts "c:t:d:n:a:h" _opt; do
+    case "$_opt" in
+        c)
+            SUBCOMMAND="$OPTARG"
+            ;;
+        t)
+            IMAGE_TYPE="$OPTARG"
+            ;;
+        d)
+            IMAGE_DIR="$OPTARG"
+            ;;
+        n)
+            IMAGE_NAME="$OPTARG"
+            ;;
+        a)
+            ARCH="$OPTARG"
+            ;;
+        h)
+            run_help
+            exit 0
+            ;;
+        *)
+            run_help
+            exit 1
+            ;;
+    esac
+done
+INSTANCE_NAME="$1"
+
+# sanity checks
+test -n "$INSTANCE_NAME" || { printf 'Error: Instance name not set\n' >&2; exit 1; }
+case "$SUBCOMMAND" in
+    make-image|mount-disks|umount-disks)
+        :
+        ;;
+    *)
+        printf 'Subcommand "%s" not implemented\n' "$SUBCOMMAND" >&2
+        exit 1
+        ;;
+esac
+case "$IMAGE_TYPE" in
+    tarball|dump|qemu|'')
+        :
+        ;;
+    *)
+        printf 'Error: Incorrect type "%s" set\n' "$TYPE" >&2
+        exit 1
+        ;;
+esac
+test "x`gnt-cluster getmaster`" = "x$HOSTNAME" || \
+    { printf 'ERROR: Command must be run from master node\n'; exit 1; }
+
+# env vars
+output="$(gnt-instance activate-disks "$INSTANCE_NAME" | grep ':disk/0:')"
+trap "gnt-instance deactivate-disks \"$INSTANCE_NAME\"" EXIT
+info="$(gnt-instance list -o os,hypervisor,disk.count,hv/kernel_path --no-headers --separator='|' "$INSTANCE_NAME")"
+NODE="`printf '%s' "$output" | cut -d: -f1`"
+DISK_0_PATH="`printf '%s' "$output" | cut -d: -f3`"
+OS_VARIANT="`printf '%s' "$info" | cut -d\| -f1 | sed -e 's/^.*+//'`"
+HYPERVISOR="`printf '%s' "$info" | cut -d\| -f2`"
+DISK_COUNT="`printf '%s' "$info" | cut -d\| -f3`"
+INSTANCE_HV_kernel_path="`printf '%s' "$info" | cut -d\| -f4`"
+OS_API_VERSION=20
+
+# main
+printf 'Creating image with type "%s" from "%s" in "%s" from node "%s"\n' \
+    "$IMAGE_TYPE" "$INSTANCE_NAME" "$IMAGE_DIR" "$NODE" >&2
+eval_string="
+    DISK_0_PATH=\"$DISK_0_PATH\"
+    OS_VARIANT=\"$OS_VARIANT\"
+    HYPERVISOR=\"$HYPERVISOR\"
+    DISK_COUNT=\"$DISK_COUNT\"
+    INSTANCE_HV_kernel_path=\"$INSTANCE_HV_kernel_path\"
+    OS_API_VERSION=20
+    export DISK_0_PATH OS_VARIANT HYPERVISOR DISK_COUNT INSTANCE_HV_kernel_path OS_API_VERSION
+    \"@osdir@/@osname@/tools/$SUBCOMMAND\" `
+        test -z "$IMAGE_TYPE" || printf '-t "%s" ' "$IMAGE_TYPE"
+        test -z "$IMAGE_DIR" || printf '-d "%s" ' "$IMAGE_DIR"
+        test -z "$IMAGE_NAME" || printf '-n "%s" ' "$IMAGE_TYPE"
+        test -z "$ARCH" || printf '-a "%s" ' "$ARCH"
+    ` \"$INSTANCE_NAME\"
+"
+if test "x$NODE" = "x$HOSTNAME"; then
+    eval "$eval_string"
+else
+    ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "$NODE" "$eval_string"
+fi

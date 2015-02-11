@@ -193,35 +193,11 @@ The naming convention that is used is the following:
 
 ### Useful Scripts
 
-There are a set of useful scripts located in /usr/share/ganeti/os/image/tools
-that you are welcome to use. These scripts are all intended to be run on the
-master node::
-
-    mount-disks $instance_name
-    umount-disks $instance_name
-
-This will mount or umount an instance to `/tmp/${instance_name}_root`
-
-A utility script named `ganeti-image` will enable you to quickly create an image
-of the operating system from the master node. It will execute a script on the
-remote host if the instance resides on a remote host. Below is the help output.
-
-    ganeti-image [-d PATH] [-n NAME] [-a ARCH] -t TYPE -i INSTANCE
-
-    Create an image of a ganeti instance using either a tarball, dump, or qemu
-    image..
-
-    -t TYPE       Type of image, either: tarball, dump, or qemu
-    -d PATH       Path of where to put the image
-    -i INSTANCE   Name of the instance
-    -n NAME       Name of the image
-    -a ARCH       Architecture of the image
-
-    This utility must be used on the master node. All optional args will
-    have defaults if you do not set them.
-
-The previous image scripts are now deprecated and will be removed in a future
-release.
+There are a set of useful sub-command scripts located in
+/usr/share/ganeti/os/image/tools, and the recommended way to use them is with
+the wrapper script `gnt-disk-tool` which must be run on the master node. It will
+execute a sub-command script on the remote host where the instance resides. See
+its help output for details.
 
 ## Customization of the instance
 

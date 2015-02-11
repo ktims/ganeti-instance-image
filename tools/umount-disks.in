@@ -1,26 +1,75 @@
-#!/bin/bash
+#!/bin/sh
+
+# Copyright (C) 2012 Oregon State University
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
 set -e
 
+# presets
+IMAGE_TYPE=''
+IMAGE_DIR=''
+IMAGE_NAME=''
+ARCH=''
+SCRIPT_NAME="$(basename "$0")"
+INSTANCE_NAME=''
+
+# functions
+run_help() {
+    cat <<EOF
+Usage: $SCRIPT_NAME INSTANCE_NAME
+
+Unmount the disks of an instance from a temp directory.
+
+ARGS:
+ INSTANCE_NAME    Name of the instance
+EOF
+}
+
+# getopts
+while getopts 'h' _opt; do
+    case "$_opt" in
+        h)
+            run_help
+            exit 0
+            ;;
+        *)
+            run_help
+            exit 1
+            ;;
+    esac
+done
 INSTANCE_NAME="$1"
 
-if test -z "$INSTANCE_NAME"; then
-    printf Must provide a node name!\n'
-    exit 1
-fi
+# sanity checks
+test -n "$INSTANCE_NAME" || die 'Error: INSTANCE_NAME not set\n'
+test -n "$DISK_0_PATH" || die 'Error: DISK_0_PATH not set\n'
+test -n "$OS_VARIANT" || die 'Error: OS_VARIANT not set\n'
+test -n "$HYPERVISOR" || die 'Error: HYPERVISOR not set\n'
+test -n "$DISK_COUNT" || die 'Error: DISK_COUNT not set\n'
+test -n "$INSTANCE_HV_kernel_path" || die 'Error: INSTANCE_HV_kernel_path not set\n'
+test -n "$OS_API_VERSION" || die 'Error: OS_API_VERSION not set\n'
 
-info="$(gnt-instance list -o os,hypervisor,disk.count --no-headers --separator=' ' "$INSTANCE_NAME")"
-OS_VARIANT="${info[0]/*+/}"
-HYPERVISOR="${info[1]}"
-DISK_COUNT="${info[2]}"
-OS_API_VERSION=20
-output="$(gnt-instance activate-disks "$INSTANCE_NAME")"
-DISK_0_PATH="`printf '%s' "$output" | sed -n -e '/disk\/0:/! b; s/^.*disk\/0://; p'`"
-
+# source functions
 . "@osdir@/@osname@/common.sh"
+debug set -x
 
-cleanup push "gnt-instance deactivate-disks \"$INSTANCE_NAME\""
-filesystem_dev="${DISK_0_PATH/\/dev\//}"
+# main
 TARGET="/tmp/${INSTANCE_NAME}_root"
+filesystem_dev="${DISK_0_PATH#/dev}"
 map_partition 'root'
 map_partition 'boot'
 umount_disk0 'temp'
