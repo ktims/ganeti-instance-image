@@ -506,6 +506,16 @@ format_disk0_parted() {
     test -n "$KERNEL_PATH" || _parted_cmd "$_disk0" 'set' 1 'boot' 'on'
 }
 
+dump_extract() {
+    _root_dump="${root_dump:-${IMAGE_FILE:-${DUMPDIR}/root.dump}}"
+    _boot_dump="${_root_dump%root.dump}boot.dump"
+    rm -rf "${TMPDIR:-/tmp}/rst"* # clean up any previous restore runs
+    test -f "$_root_dump" || die 'Can'\''t find image file "%s"\n' "$_root_dump"
+    ( cd "$TARGET" && restore -r -y -f "$_root_dump" >/dev/null )
+    if test -n "$_boot_dump"; then
+        test -f "$_boot_dump" || die 'Can'\''t find image file "%s"\n' "$_boot_dump"
+        ( cd "${TARGET}/boot" && restore -r -y -f "$_boot_dump" >/dev/null )
+    fi
 }
 
 mkfs_disk0() {
