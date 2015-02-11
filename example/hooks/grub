@@ -133,7 +133,7 @@ EOF
         # (this only applies until the user does update-grub)
         test -z "$KERNEL_ARGS" || \
             sed --follow-symlinks -i -e '/^[ \t]*linux16[ \t]/ s/$/ '"$KERNEL_ARGS"'/' \
-                "${_boot_dir}/grub.cfg"
+                "${boot_dir}/grub.cfg"
         # show the menu countdown in case we want to boot to a different kernel
         # (this only applies after the user does update-grub)
         sed --follow-symlinks -i -e 's/.*GRUB_HIDDEN_TIMEOUT=.*/GRUB_HIDDEN_TIMEOUT=5/' "${TARGET}/etc/default/grub"
