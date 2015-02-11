@@ -691,6 +691,36 @@ get_api_parameters() {
     get_api20_parameters
 }
 
+download_imagefile() {
+    IMAGE_FILENAME="${IMAGE_NAME}-${ARCH}$IMG_EXT"
+    IMAGE_FILE="${CACHE_DIR}/$IMAGE_FILENAME"
+    if test -n "$IMAGE_URL"; then
+        _pwd="$(pwd)"
+        cd "$CACHE_DIR"
+        if ! test -e "$IMAGE_FILE"; then
+            $WGET -O- "${IMAGE_URL}/$IMAGE_FILENAME" >"$IMAGE_FILENAME" 2>/dev/null || \
+                die 'Failed to find the image at "%s"\n' "$IMAGE_URL"
+            ! test 'yes' = "$IMG_CLEANUP" || cleanup push "rm -f \"$IMAGE_FILE\""
+        fi
+        if test 'yes' = "$IMG_VERIFY"; then
+            rm -f "${IMAGE_FILENAME}.sig" >/dev/null 2>&1 || :
+            $WGET -O- "${IMAGE_URL}/${IMAGE_FILENAME}.sig" >"${IMAGE_FILENAME}.sig" 2>/dev/null || \
+                die 'Failed to find the checksum file at "%s"\n' "$IMAGE_URL"
+            ! test 'yes' = "$IMG_CLEANUP" || cleanup push "rm -f \"${IMAGE_FILE}.sig\""
+            "$SHA1SUM" -c "${IMAGE_FILENAME}.sig" >/dev/null || \
+                die 'Image doesn'\''t match checksum!\n'
+        fi
+        cd "$_pwd"
+    fi
+}
+
+use_unique_tmpdir() {
+    OLD_TMPDIR="$TMPDIR"
+    TMPDIR="$(mktemp -d --tmpdir "${INSTANCE_NAME}_XXXXXXXX")"
+    export TMPDIR
+    cleanup push "rm -fr \"$TMPDIR\"; TMPDIR=\"$OLD_TMPDIR\"; export TMPDIR"
+}
+
 check_os_variant() {
     if test -n "$OS_VARIANT"; then
         test -d "$VARIANTS_DIR" || die 'OS Variants directory "%s" doesn'\''t exist\n' "$VARIANTS_DIR"

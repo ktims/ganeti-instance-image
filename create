@@ -21,6 +21,8 @@ set -e
 . ./common.sh
 debug set -x
 
+# TODO: optimise some things based on INSTANCE_REINSTALL=1
+
 RUN_PARTS="`which run-parts`"
 case "$IMAGE_TYPE" in
     tarball)
@@ -33,87 +35,63 @@ case "$IMAGE_TYPE" in
         IMG_EXT='-root.dump'
         ;;
 esac
-
-if ! test -z "$IMAGE_URL"; then
-    cd "$CACHE_DIR"
-    if ! test -e "${CACHE_DIR}/${IMAGE_NAME}-${ARCH}$IMG_EXT"; then
-        $WGET -O- "${IMAGE_URL}/${IMAGE_NAME}-${ARCH}$IMG_EXT" >"${IMAGE_NAME}-${ARCH}$IMG_EXT" 2>/dev/null || \
-            die 'Failed to find the image on %s\n' "$IMAGE_URL"
-    fi
-    if test 'yes' = "$IMG_VERIFY"; then
-        $WGET -O- "${IMAGE_URL}/${IMAGE_NAME}-${ARCH}${IMG_EXT}.sig" >"${IMAGE_NAME}-${ARCH}${IMG_EXT}.sig" 2>/dev/null || \
-            die 'Failed to find the checksum file\n'
-        "$SHA1SUM" -c "${IMAGE_NAME}-${ARCH}${IMG_EXT}.sig" >/dev/null || \
-            die 'Image doesn'\''t match checksum!\n'
-    fi
-    ! test 'yes' = "$IMG_CLEANUP" || \
-        cleanup push "rm -f \"${CACHE_DIR}/${IMAGE_NAME}-${ARCH}$IMG_EXT\" \"${CACHE_DIR}/${IMAGE_NAME}-${ARCH}${IMG_EXT}.sig\""
-    IMAGE_FILE="${CACHE_DIR}/${IMAGE_NAME}-${ARCH}$IMG_EXT"
-    cd "$OLDPWD"
-else
-    IMAGE_FILE="${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}$IMG_EXT"
+download_imagefile
+# workaround restore's non-unique /tmp/rstdir* & /tmp/rstmode*
+! test 'dump' = "$IMAGE_TYPE" || use_unique_tmpdir
+test 'no' = "$CDINSTALL" || exit 0
+losetup_blockdev
+DISK_SIZE="$(expr `"$BLOCKDEV_CMD" --getsize64 "$BLOCKDEV"` / 1048576 || :)"
+if test 'yes' = "$SWAP"; then
+    test -n "$SWAP_SIZE" || die 'SWAP_SIZE not set however SWAP is enabled\n'
+    test $SWAP_SIZE -le $DISK_SIZE || \
+        die 'SWAP_SIZE larger than system disk size:\n  %sMB swap > %sMB system disk\n' "$SWAP_SIZE" "$DISK_SIZE"
 fi
-if test 'dump' = "$IMAGE_TYPE"; then
-    # Workaround for restore's non-unique /tmp/rstdir* and /tmp/rstmode*
-    TMPDIR="$(mktemp -d --tmpdir "${INSTANCE_NAME}_XXXXXXXX")"
-    export TMPDIR
-    cleanup push "rmdir --ignore-fail-on-non-empty \"$TMPDIR\""
-fi
-if test 'no' = "$CDINSTALL"; then
-    losetup_blockdev
-    DISK_SIZE="$(expr `"$BLOCKDEV_CMD" --getsize64 "$BLOCKDEV"` / 1048576)"
-    if test 'yes' = "$SWAP"; then
-        test -n "$SWAP_SIZE" || die 'SWAP_SIZE not set however SWAP is enabled\n'
-        test $SWAP_SIZE -le $DISK_SIZE || \
-            die 'SWAP_SIZE larger than system disk size:\n  %sMB swap > %sMB system disk\n' "$SWAP_SIZE" "$DISK_SIZE"
-    fi
-    test -f "$IMAGE_FILE" || die 'Can'\''t find image file: %s\n' "$IMAGE_FILE"
-    # If image is tarball based, we need to manually create volumes, FS, etc
-    if test 'tarball' = "$IMAGE_TYPE" || test 'dump' = "$IMAGE_TYPE"; then
+test -f "$IMAGE_FILE" || die 'Can'\''t find image file "%s"\n' "$IMAGE_FILE"
+case "$IMAGE_TYPE" in
+    tarball|dump)
         format_disk0 "$BLOCKDEV"
-    elif test 'qemu' = "$IMAGE_TYPE"; then
-        # need a recent version of qemu for this
+        ;;
+    qemu)
         "$QEMU_IMG" convert "$IMAGE_FILE" -O 'host_device' "$BLOCKDEV" >/dev/null
-    fi
-    # deploying something like a windows image, skip the rest
-    ! test 'yes' = "$NOMOUNT" || exit 0
-
-    if test -n "$RUN_PARTS" && test -d "$PRE_CUSTOMIZE_DIR"; then
-        export TARGET SUITE BLOCKDEV IMAGE_TYPE
-        "$RUN_PARTS" "$PRE_CUSTOMIZE_DIR"
-    fi
-    map_all
-    case "$IMAGE_TYPE" in
-        tarball|dump)
-            mkfs_disk0
-            get_uuids
-            ;;
-    esac
-    mount_disk0 'temp'
-    case "$IMAGE_TYPE" in
-        tarball)
-            tar pzxf "$IMAGE_FILE" -C "$TARGET"
-            ;;
-        dump)
-            root_dump="$IMAGE_FILE"
-            ( cd "$TARGET" && restore -r -y -f "$root_dump" >/dev/null )
-            if test -n "$boot_dev"; then
-                boot_dump="${IMAGE_FILE%root.dump}boot.dump"
-                test -f "$boot_dump" || die 'Can'\''t find image file: %s\n' "$boot_dump"
-                ( cd "${TARGET}/boot" && restore -r -y -f "$boot_dump" >/dev/null )
-            fi
-            ;;
-    esac
-    case "$IMAGE_TYPE" in
-        tarball|dump)
-            setup_fstab
-            ;;
-    esac
-    ! test 'True' = "$INSTANCE_HV_serial_console" || setup_console
-    filesystem_relabel
-    if test -n "$RUN_PARTS" && test -d "$CUSTOMIZE_DIR"; then
-        ROOT_DEV="$root_dev"; BOOT_DEV="$boot_dev"; IMG_SSH_KEY_URL="$IMG_SSH_KEY_URL"
-        export TARGET SUITE BLOCKDEV ROOT_DEV BOOT_DEV IMAGE_TYPE IMG_SSH_KEY_URL
-        "$RUN_PARTS" "$CUSTOMIZE_DIR"
-    fi
+        ;;
+esac
+# deploying something like a windows image, skip the rest
+! test 'yes' = "$NOMOUNT" || exit 0
+if test -n "$RUN_PARTS" && test -d "$PRE_CUSTOMIZE_DIR"; then
+    export TARGET SUITE BLOCKDEV IMAGE_TYPE
+    "$RUN_PARTS" "$PRE_CUSTOMIZE_DIR"
+fi
+map_all
+case "$IMAGE_TYPE" in
+    tarball|dump)
+        mkfs_disk0
+        get_uuids
+        ;;
+esac
+mount_disk0 'temp'
+case "$IMAGE_TYPE" in
+    tarball)
+        tar pzxf "$IMAGE_FILE" -C "$TARGET"
+        ;;
+    dump)
+        root_dump="$IMAGE_FILE"
+        ( cd "$TARGET" && restore -r -y -f "$root_dump" >/dev/null )
+        if test -n "$boot_dev"; then
+            boot_dump="${IMAGE_FILE%root.dump}boot.dump"
+            test -f "$boot_dump" || die 'Can'\''t find image file: %s\n' "$boot_dump"
+            ( cd "${TARGET}/boot" && restore -r -y -f "$boot_dump" >/dev/null )
+        fi
+        ;;
+esac
+case "$IMAGE_TYPE" in
+    tarball|dump)
+        setup_fstab
+        ;;
+esac
+! test 'True' = "$INSTANCE_HV_serial_console" || setup_console
+filesystem_relabel
+if test -n "$RUN_PARTS" && test -d "$CUSTOMIZE_DIR"; then
+    ROOT_DEV="$root_dev"; BOOT_DEV="$boot_dev"; IMG_SSH_KEY_URL="$IMG_SSH_KEY_URL"
+    export TARGET SUITE BLOCKDEV ROOT_DEV BOOT_DEV IMAGE_TYPE IMG_SSH_KEY_URL
+    "$RUN_PARTS" "$CUSTOMIZE_DIR"
 fi
