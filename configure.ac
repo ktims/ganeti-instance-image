@@ -36,7 +36,7 @@ AC_PROG_MKDIR_P
 # "build-deps" in order to inject their paths into the scripts
 
 AC_PATH_PROG(DUMP, [dump], [], [$PATH:/usr/sbin:/sbin])
-if test -n "$DUMP" || AC_MSG_ERROR([dump not found in $PATH])
+test -n "$DUMP" || AC_MSG_ERROR([dump not found in $PATH])
 
 AC_PATH_PROG(LOSETUP, [losetup], [], [$PATH:/usr/sbin:/sbin])
 test -n "$LOSETUP" || AC_MSG_ERROR([losetup not found in $PATH])
