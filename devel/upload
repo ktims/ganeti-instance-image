@@ -43,12 +43,12 @@ while test $# -gt 0; do
     shift
 done
 
-set $hosts
+set -- $hosts
 TXD="`mktemp -d`"
 trap 'rm -rf "$TXD"' EXIT
 make install DESTDIR="$TXD"
 printf '---\n'
-( cd "$TXD" && find; )
+( cd "$TXD" && find )
 printf '---\n'
 for _host; do
     printf 'Uploading code to %s...\n' "$_host"

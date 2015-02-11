@@ -144,8 +144,8 @@ unlosetup_blockdev() {
     if test -n "$OLD_BLOCKDEV"; then
         "$LOSETUP" -d "$BLOCKDEV"
         BLOCKDEV="$OLD_BLOCKDEV"
-        OLD_BLOCKDEV=''
         export BLOCKDEV
+        OLD_BLOCKDEV=''
     fi
 }
 
@@ -171,9 +171,9 @@ map_disk0() {
     test -n "$_filesystem_dev1_base" || die 'Cannot interpret kpartx output and get partition mapping\n'
     $KPARTX -a -p- "$BLOCKDEV" >/dev/null
     cleanup push 'unmap_disk0'
+    filesystem_dev="/dev/mapper/${_filesystem_dev1_base%-1}"
     test -b "/dev/mapper/$_filesystem_dev1_base" || \
         die 'Can'\''t find kpartx mapped partition: /dev/mapper/%s\n' "$_filesystem_dev1_base"
-    filesystem_dev="/dev/mapper/${_filesystem_dev1_base%-1}"
 }
 
 update_map_disk0() { sync; $KPARTX -u -p- "$BLOCKDEV"; }
@@ -376,7 +376,7 @@ get_os_type() {
 get_os() {
     test -n "$TARGET" || die 'TARGET is not set in get_os\n'
     _lsb='/usr/bin/lsb_release'
-    if test -e "${TARGET}/$_lsb"; then
+    if test -e "${TARGET}$_lsb"; then
         OPERATING_SYSTEM="$(chroot "$TARGET" "$_lsb" -i -s | tr '[:upper:]' '[:lower:]')"
     elif test -e "${TARGET}/etc/debian_version"; then
         OPERATING_SYSTEM='debian'
@@ -396,7 +396,7 @@ get_os() {
 get_os_release() {
     test -n "$TARGET" || die 'TARGET is not set in get_os_release\n'
     _lsb='/usr/bin/lsb_release'
-    if test -e "${TARGET}/$_lsb"; then
+    if test -e "${TARGET}$_lsb"; then
         OS_RELEASE="$(chroot "$TARGET" "$_lsb" -r -s | tr '[:upper:]' '[:lower:]')"
     elif test -e "${TARGET}/etc/debian_version"; then
         OS_RELEASE="$(cat "${TARGET}/etc/debian_version")"
@@ -492,7 +492,6 @@ format_disk0_parted() {
             _part3="${_boot_and_swap}M 100%"
         fi
     fi
-
     _parted_cmd "$_disk0" 'mklabel' 'msdos'
     for _part in _part1 _part2 _part3; do
         eval "
@@ -683,9 +682,9 @@ check_os_variant() {
                     "$OS_VARIANT" "$VARIANT_CONFIG" "$OS_VARIANT"
             else
                 die 'Unofficial variant "%s" is unsupported
-Most probably this is a user error, forcing a wrong name
-To support this variant please create file "%s" (and add
-it to variants.list)\n' "$OS_VARIANT" "$VARIANT_CONFIG"
+  Most probably this is a user error, forcing a wrong name
+  To support this variant please create file "%s" (and add
+  it to variants.list)\n' "$OS_VARIANT" "$VARIANT_CONFIG"
             fi
         fi
     fi
@@ -867,7 +866,7 @@ VOL_ID="\"$BLKID\" -c /dev/null -o 'value' -s 'UUID'"
 VOL_TYPE="\"$BLKID\" -c /dev/null -o 'value' -s 'TYPE'"
 VARIANT_CONFIG="${VARIANTS_DIR}/${OS_VARIANT}.conf"
 
+get_api_parameters
 # TODO: check_os_variant should go in "verify" when ganeti supports more than just parameters
 check_os_variant
-get_api_parameters
 source_os_variant

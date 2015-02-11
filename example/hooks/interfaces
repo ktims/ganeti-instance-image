@@ -135,9 +135,7 @@ _gentoo_setup() {
     if test 0 -ne $NIC_COUNT; then
         test -f "${TARGET}/etc/conf.d/net" || die 'Missing target network file\n'
         if test -z "$STATIC"; then
-            cat >"${TARGET}/etc/conf.d/net" <<EOF
-config_eth0=( "dhcp" )
-EOF
+            printf 'config_eth0=( "dhcp" )\n' >"${TARGET}/etc/conf.d/net"
         else
             cat >"${TARGET}/etc/conf.d/net" <<EOF
 config_eth0=( "$ADDRESS netmask $NETMASK" )
