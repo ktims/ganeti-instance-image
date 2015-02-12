@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if test ! -f configure.ac ; then
+if ! test -f configure.ac ; then
   echo "You must execute this script from the top level directory."
   exit 1
 fi
