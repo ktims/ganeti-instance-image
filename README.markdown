@@ -285,9 +285,7 @@ which subnet it resides on. For example, we could create a file named
 ### SSH
 
 When enabled, it will clear out any generated ssh keys that the image may have
-so that each instance have *unique* host keys. Currently its disabled for
-Debian/Ubuntu since the keys won't be regenerated via the init script. We plan
-to fix this manually at some point in the future.
+so that each instance have *unique* host keys.
 
 ### Overlays
 
