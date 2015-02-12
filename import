@@ -26,7 +26,7 @@ debug set -x
 losetup_blockdev
 mkdir_disk0_temp 'dump'
 if ! test 'yes' = "$NOMOUNT"; then
-    format_disk0 "$BLOCKDEV"
+    format_disk0
     map_all
     mkfs_disk0
     get_uuids

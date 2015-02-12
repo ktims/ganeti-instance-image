@@ -49,7 +49,7 @@ fi
 test -f "$IMAGE_FILE" || die 'Can'\''t find image file "%s"\n' "$IMAGE_FILE"
 case "$IMAGE_TYPE" in
     tarball|dump)
-        format_disk0 "$BLOCKDEV"
+        format_disk0
         ;;
     qemu)
         "$QEMU_IMG" convert "$IMAGE_FILE" -O 'host_device' "$BLOCKDEV" >/dev/null

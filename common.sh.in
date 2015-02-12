@@ -410,10 +410,10 @@ get_os_release() {
 format_disk0() {
     case "$FDISK" in
         parted)
-            format_disk0_parted "$1"
+            format_disk0_parted "$BLOCKDEV"
             ;;
         sfdisk)
-            format_disk0_sfdisk "$1"
+            format_disk0_sfdisk "$BLOCKDEV"
             ;;
     esac
 }
