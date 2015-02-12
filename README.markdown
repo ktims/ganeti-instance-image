@@ -282,11 +282,6 @@ which subnet it resides on. For example, we could create a file named
       ADDRESS=192.168.1.100
       SUBNET=vlan42
 
-### SSH
-
-When enabled, it will clear out any generated ssh keys that the image may have
-so that each instance have *unique* host keys.
-
 ### Overlays
 
 When enabled it will copy a directory of files recursively into the instance.
@@ -295,5 +290,34 @@ Create a directory in `/etc/ganeit/instance-image/overlays/` and copy files as
 needed into it. Treat the directory as the root of the filesystem. Set `OVERLAY`
 for the variant as the name of the directory. This directory needs to exist on
 all nodes in order to work.
+
+### Cron Randomize
+
+TODO
+
+### Random Seed
+
+TODO
+
+### Root Password
+
+TODO
+
+### Root SSH Key
+
+TODO
+
+### SSH
+
+When enabled, it will clear out any generated ssh keys that the image may have
+so that each instance have *unique* host keys.
+
+### DNS
+
+TODO
+
+### Resize Partition
+
+TODO
 
 vi: set tw=80 ft=markdown :
