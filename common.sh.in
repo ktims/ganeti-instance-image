@@ -762,58 +762,6 @@ Instance has a different hostname "%s"\n' "$old_name" "$instance" "$OLD_HNAME"
     fi
 }
 
-check_api10_parameters() {
-    test -n "$INSTANCE_NAME" && test -n "$HYPERVISOR" && test -n "$DISK_COUNT" || \
-        die 'Missing OS API Variable:\n(INSTANCE_NAME, HYPERVISOR or DISK_COUNT)\n'
-    test 1 -le $DISK_COUNT && test -n "$DISK_0_PATH" || die 'At least one disk is needed\n'
-    case "$SCRIPT_NAME" in
-        export)
-            test -n "$EXPORT_DEVICE" || die 'Missing OS API Variable EXPORT_DEVICE\n'
-            ;;
-        import)
-            test -n "$IMPORT_DEVICE" || die 'Missing OS API Variable IMPORT_DEVICE\n'
-            ;;
-    esac
-    ! test 'rename' = "$SCRIPT_NAME" || test -n "$OLD_INSTANCE_NAME" || \
-        die 'Missing OS API Variable OLD_INSTANCE_NAME\n'
-}
-
-check_api20_parameters() {
-    case "$OSP_IMG_FORMAT" in
-        tarball|qemu|dump)
-            :
-            ;;
-        *)
-            die 'Wrong image format "%s" for OSP_IMG_FORMAT. Supported formats are: qemu, tarball, dump.\n' "$OSP_IMG_FORMAT"
-            ;;
-    esac
-    test -n "$OSP_IMG_ID" || die 'Missing OS image ID (OSP_IMG_ID),\n'
-    # $OSP_IMG_PASSWD is optional...
-    case "$OSP_IMG_NOMOUNT" in
-        yes|no|'')
-            :
-            ;;
-        *)
-            die 'Invalid argument "%s" for OSP_IMG_NOMOUNT. Must be "yes" or "no".\n' "$OSP_IMG_NOMOUNT"
-            ;;
-    esac
-}
-
-check_api_parameters() {
-    case "$OS_API_VERSION" in
-        4|5|10|15)
-            die 'Obsolete OS API VERSION "%s"\n' "$OS_API_VERSION"
-            ;;
-        20)
-            check_api10_parameters
-            check_api20_parameters
-            ;;
-        *)
-            die 'Unknown OS API VERSION "%s"\n' "$OS_API_VERSION"
-            ;;
-    esac
-}
-
 get_api10_parameters() {
     instance="$INSTANCE_NAME"
     case "$SCRIPT_NAME" in
