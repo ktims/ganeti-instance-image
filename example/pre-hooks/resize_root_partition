@@ -24,8 +24,8 @@ set -e
 debug set -x
 
 if test 'qemu' = "$IMAGE_TYPE"; then
-    losetup_blockdev
-    part_size check
-    part_size expand
+    part_size 'check'
+    part_size 'expand'
+    update_map_disk0
     fs_size expand
 fi

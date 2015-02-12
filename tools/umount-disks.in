@@ -21,58 +21,60 @@
 set -e
 
 # presets
-IMAGE_TYPE=''
-IMAGE_DIR=''
-IMAGE_NAME=''
-ARCH=''
-SCRIPT_NAME="$(basename "$0")"
 INSTANCE_NAME=''
+SCRIPT_NAME="$(basename "$0")"
 
 # functions
-run_help() {
+usage() {
     cat <<EOF
-Usage: $SCRIPT_NAME INSTANCE_NAME
+Usage: $SCRIPT_NAME [OPTIONS] INSTANCE_NAME
 
 Unmount the disks of an instance from a temp directory.
 
 ARGS:
- INSTANCE_NAME    Name of the instance
+ INSTANCE_NAME  Name of the instance
+
+OPTIONS:
+ -h             Help output
 EOF
 }
 
+croak() { usage >&2; printf "$@" | sed -e "s/^/${SCRIPT_NAME}: /" >&2; exit 1; }
+
 # getopts
-while getopts 'h' _opt; do
+while getopts ':h' _opt; do
     case "$_opt" in
         h)
-            run_help
+            usage
             exit 0
             ;;
         *)
-            run_help
-            exit 1
+            croak 'Unknown option "-%s"\n' "$OPTARG"
             ;;
     esac
 done
+shift `expr $OPTIND - 1 || :`
 INSTANCE_NAME="$1"
 
 # sanity checks
-test -n "$INSTANCE_NAME" || die 'Error: INSTANCE_NAME not set\n'
-test -n "$DISK_0_PATH" || die 'Error: DISK_0_PATH not set\n'
-test -n "$OS_VARIANT" || die 'Error: OS_VARIANT not set\n'
-test -n "$HYPERVISOR" || die 'Error: HYPERVISOR not set\n'
-test -n "$DISK_COUNT" || die 'Error: DISK_COUNT not set\n'
-test -n "$INSTANCE_HV_kernel_path" || die 'Error: INSTANCE_HV_kernel_path not set\n'
-test -n "$OS_API_VERSION" || die 'Error: OS_API_VERSION not set\n'
+test -n "$INSTANCE_NAME" || croak 'Error: INSTANCE_NAME not set\n'
+test -n "$DISK_0_PATH" || croak 'Error: DISK_0_PATH not set\n'
+test -n "$OS_VARIANT" || croak 'Error: OS_VARIANT not set\n'
+test -n "$HYPERVISOR" || croak 'Error: HYPERVISOR not set\n'
+test -n "$DISK_COUNT" || croak 'Error: DISK_COUNT not set\n'
+test -n "$OS_API_VERSION" || croak 'Error: OS_API_VERSION not set\n'
 
 # source functions
 . "@osdir@/@osname@/common.sh"
 debug set -x
 
 # main
-TARGET="/tmp/${INSTANCE_NAME}_root"
 filesystem_dev="${DISK_0_PATH#/dev}"
+TARGET="cat /proc/mounts | grep "$DISK_0_PATH" | awk '{ print $2 }'"
 map_partition 'root'
 map_partition 'boot'
-umount_disk0 'temp'
+umount_disk0
+rmdir_disk0_temp
 BLOCKDEV="$DISK_0_PATH"
 unmap_disk0
+verbprint '"%s" finished\n' "$INSTANCE_NAME"

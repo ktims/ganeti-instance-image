@@ -1,7 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2012 Oregon State University
-# Copyright (C) 2013, 2014, 2015 GRNET S.A.
+# Copyright (C) 2015 GRNET S.A.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,37 +20,42 @@
 set -e
 
 # presets
-READONLY=0
+RESIZE='filesystem'
 INSTANCE_NAME=''
+SIZE=0
 SCRIPT_NAME="$(basename "$0")"
 
 # functions
 usage() {
     cat <<EOF
-Usage: $SCRIPT_NAME [OPTIONS] INSTANCE_NAME
+Usage: $SCRIPT_NAME [OPTIONS] INSTANCE_NAME [SIZE]
 
-Mount the disks of an instance in a temp directory.
+Shrink the root filesystem (& partition based on flags).
 
 ARGS:
  INSTANCE_NAME  Name of the instance
+ SIZE           Optional partition size to shrink to
 
 OPTIONS:
  -h             Help output
- -r             Mount readonly if mounting
+ -R OBJECT      OBJECT:
+                 filesystem: resize FS (default)
+                 partition: resize FS and partition (if possible)
+                 disk: noop (just here for when called from the wrapper script)
 EOF
 }
 
 croak() { usage >&2; printf "$@" | sed -e "s/^/${SCRIPT_NAME}: /" >&2; exit 1; }
 
 # getopts
-while getopts ':rh' _opt; do
+while getopts ':hR:' _opt; do
     case "$_opt" in
-        r)
-            READONLY=1
-            ;;
         h)
             usage
             exit 0
+            ;;
+        R)
+            RESIZE="$OPTARG"
             ;;
         *)
             croak 'Unknown option "-%s"\n' "$OPTARG"
@@ -60,6 +64,7 @@ while getopts ':rh' _opt; do
 done
 shift `expr $OPTIND - 1 || :`
 INSTANCE_NAME="$1"
+test -z "$2" || SIZE="$2"
 
 # sanity checks
 test -n "$INSTANCE_NAME" || croak 'Error: INSTANCE_NAME not set\n'
@@ -76,8 +81,12 @@ debug set -x
 # main
 losetup_blockdev
 map_all
-mkdir_disk0_temp
-mount_disk0 `test 0 -eq $READONLY || printf 'readonly'`
-verbprint '"%s" is now mounted at "%s"\n' "$INSTANCE_NAME" "$TARGET"
-cleanup uninit
+fs_size 'shrink'
+# TODO: this hasn't been implemented yet (and the disk must be shrunk in the
+#       wrapper script on the master node anyway)
+#case "$RESIZE" in
+#    partition|disk)
+#        part_size 'shrink'
+#        ;;
+#esac
 verbprint '"%s" finished\n' "$INSTANCE_NAME"

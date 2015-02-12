@@ -52,7 +52,7 @@ _setup_disk_devs() {
     if test -n "$BOOT_DEV"; then
         # create internal boot partition device
         mknod "${TARGET}/dev/${disk}$_boot_part" b `stat -L -c '0x%t 0x%T' "$BOOT_DEV"`
-        cleanup push "rm -f \"${TARGET}/dev/${disk}$boot_part\""
+        cleanup push "rm -f \"${TARGET}/dev/${disk}$_boot_part\""
     fi
 }
 
@@ -163,6 +163,6 @@ if test 'True' = "$INSTANCE_HV_serial_console"; then
         printf 'GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"\n' \
             >>"${TARGET}/etc/default/grub"
     else
-        verbprint 'No grub bootloader found, skipping...\n'
+        printerr 'No grub bootloader found, skipping...\n'
     fi
 fi

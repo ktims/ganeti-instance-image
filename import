@@ -22,14 +22,18 @@ set -e
 . ./common.sh
 debug set -x
 
-# TODO: use $IMPORT_INDEX
+# TODO:
+# * use $IMPORT_INDEX
 
 losetup_blockdev
-mkdir_disk0_temp 'dump'
-( cd "$DUMPDIR" && tar -xf - ) # import dumps from tar file
+mkdir_dumpdir_temp
+( cd "$DUMPDIR" && tar -xf - ) # import dumps from tar on stdin
 if test 'yes' = "$NOMOUNT"; then
-    "$QEMU_IMG" convert "${DUMPDIR}/disk.img" -O 'host_device' "$BLOCKDEV"
+    cleanup push "rm -f \"${DUMPDIR}/disk.img\""
+    qcow_extract "${DUMPDIR}/disk.img"
 else
+    cleanup push "rm -f \"${DUMPDIR}/root.dump\""
+    cleanup push "rm -f \"${DUMPDIR}/boot.dump\" 2>/dev/null || :"
     use_unique_tmpdir
     get_disk0_size_mbytes
     check_swap_size
@@ -38,7 +42,7 @@ else
     mkfs_disk0
     get_uuids
     mount_disk0
-    dump_extract
+    dump_extract "${DUMPDIR}/root.dump"
     setup_fstab
     ! test 'True' = "$INSTANCE_HV_serial_console" || setup_console
     filesystem_relabel
@@ -46,7 +50,7 @@ else
     if test -x "${CUSTOMIZE_DIR}/grub"; then
         ROOT_DEV="$root_dev"; BOOT_DEV="$boot_dev"; IMPORT_SCRIPT=1
         export TARGET SUITE BLOCKDEV ROOT_DEV BOOT_DEV IMG_SSH_KEY_URL IMPORT_SCRIPT
-        # Install grub as we're not deploying via qcow
+        # Install grub as we're not deploying via a disk image
         "${CUSTOMIZE_DIR}/grub"
     fi
 fi

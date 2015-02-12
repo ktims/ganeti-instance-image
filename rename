@@ -18,8 +18,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-# TODO: systemd needs more than just hostname changed ("machine-name", etc)
-
 set -e
 . ./common.sh
 debug set -x
@@ -27,6 +25,7 @@ debug set -x
 ! test 'yes' = "$NOMOUNT" || exit 0
 losetup_blockdev
 map_all
-mount_disk0 'temp'
+mkdir_disk0_temp
+mount_disk0
 get_os_type
 change_hostname

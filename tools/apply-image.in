@@ -33,7 +33,7 @@ usage() {
     cat <<EOF
 Usage: $SCRIPT_NAME [OPTIONS] INSTANCE_NAME
 
-Create an image of a ganeti instance using either a tarball, dump,
+Apply an image of a ganeti instance from either a tarball, dump,
 or qemu image.
 
 ARGS:
@@ -88,7 +88,14 @@ test -n "$OS_VARIANT" || croak 'Error: OS_VARIANT not set\n'
 test -n "$HYPERVISOR" || croak 'Error: HYPERVISOR not set\n'
 test -n "$DISK_COUNT" || croak 'Error: DISK_COUNT not set\n'
 test -n "$OS_API_VERSION" || croak 'Error: OS_API_VERSION not set\n'
-
+case "$IMAGE_TYPE" in
+    tarball|dump|qemu)
+        :
+        ;;
+    *)
+        die 'Image type "%s" not supported!\n' "$IMAGE_TYPE"
+        ;;
+esac
 # source functions
 . "@osdir@/@osname@/common.sh"
 debug set -x
@@ -99,21 +106,17 @@ map_all
 case "$IMAGE_TYPE" in
     tarball)
         mkdir_disk0_temp
-        mount_disk0 'readonly'
-        verbprint 'Creating tarball at "%s/%s-%s.tar.gz" from "%s"\n' "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH" "$INSTANCE_NAME"
-        tarball_create "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.tar.gz"
+        mount_disk0
+        verbprint 'Extracting "%s" from tarball at "%s/%s-%s.tar.gz"\n' "$INSTANCE_NAME" "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH"
+        tarball_extract "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.tar.gz"
         ;;
     dump)
-        verbprint 'Creating dump archive at "%s/%s-%s-{root,boot}.dump" from "%s"\n' "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH" "$INSTANCE_NAME"
-        dump_create "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}-root.dump"
+        verbprint 'Extracting "%s" from dump archive at "%s/%s-%s-{root,boot}.dump"\n' "$INSTANCE_NAME" "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH"
+        dump_extract "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}-root.dump"
         ;;
     qemu)
-        verbprint 'Creating qemu image at "%s/%s-%s.img" from "%s"\n' "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH" "$INSTANCE_NAME"
-        qcow_create "${IMAGE_DIR}/{$IMAGE_NAME}-${ARCH}.img"
-        ;;
-    *)
-        die 'Command "%s" not supported!\n' "$IMAGE_TYPE"
+        verbprint 'Extracting "%s" from qemu image at "%s/%s-%s.img"\n' "$INSTANCE_NAME" "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH"
+        qemu_extract "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.img"
         ;;
 esac
-cleanup_uninit
 verbprint '"%s" finished\n' "$INSTANCE_NAME"

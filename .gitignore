@@ -11,9 +11,16 @@
 
 # built scripts
 /common.sh
+tools/apply-image
+tools/chroot
+tools/expand
 tools/gnt-disk-tool
 tools/make-image
 tools/mount-disks
+tools/noop
+tools/shell
+tools/show
+tools/shrink
 tools/umount-disks
 
 # archives

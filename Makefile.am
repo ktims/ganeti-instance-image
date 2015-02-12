@@ -14,16 +14,19 @@ dist_os_SCRIPTS = ${srcdir}/create ${srcdir}/import ${srcdir}/export \
 dist_os_DATA = ${srcdir}/ganeti_api_version
 dist_config_DATA = ${srcdir}/variants.list ${srcdir}/parameters.list 
 os_DATA = common.sh
-tools_SCRIPTS = tools/gnt-disk-tool tools/make-image \
-	tools/mount-disks tools/umount-disks
+tools_SCRIPTS = tools/apply-image tools/chroot tools/expand \
+	tools/gnt-disk-tool tools/make-image tools/mount-disks tools/noop \
+	tools/shell tools/show tools/shrink tools/umount-disks
 
 dist_custom_DATA = ${srcdir}/example/hooks/*
 dist_custom2_DATA = ${srcdir}/example/pre-hooks/*
 
 dist_doc_DATA = ${srcdir}/COPYING ${srcdir}/NEWS ${srcdir}/README.markdown
 
-EXTRA_DIST = common.sh.in defaults tools/gnt-disk-tool.in tools/make-image.in \
-	tools/mount-disks.in tools/umount-disks.in ganeti-instance-image.spec \
+EXTRA_DIST = common.sh.in defaults tools/apply-image.in tools/chroot.in \
+	tools/expand.in tools/gnt-disk-tool.in tools/make-image.in \
+	tools/mount-disks.in tools/noop.in tools/shell.in tools/show.in \
+	tools/shrink.in tools/umount-disks.in ganeti-instance-image.spec \
 	debian
 
 edit = sed \
@@ -61,9 +64,16 @@ $(tools_SCRIPTS): Makefile
 	mv $@.tmp $@
 
 common.sh: $(srcdir)/common.sh.in
+tools/apply-image: $(srcdir)/tools/apply-image.in
+tools/chroot: $(srcdir)/tools/chroot.in
+tools/expand: $(srcdir)/tools/expand.in
 tools/gnt-disk-tool: $(srcdir)/tools/gnt-disk-tool.in
 tools/make-image: $(srcdir)/tools/make-image.in
 tools/mount-disks: $(srcdir)/tools/mount-disks.in
+tools/noop: $(srcdir)/tools/noop.in
+tools/shell: $(srcdir)/tools/shell.in
+tools/show: $(srcdir)/tools/show.in
+tools/shrink: $(srcdir)/tools/shrink.in
 tools/umount-disks: $(srcdir)/tools/umount-disks.in
 
 install-exec-local:

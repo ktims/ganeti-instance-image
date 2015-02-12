@@ -24,65 +24,49 @@ debug set -x
 
 # TODO: optimise some things based on INSTANCE_REINSTALL=1
 
+test 'no' = "$CDINSTALL" || exit 0
 RUN_PARTS="`which run-parts`"
-case "$IMAGE_TYPE" in
-    tarball)
-        IMG_EXT='.tar.gz'
-        ;;
-    qemu)
-        IMG_EXT='.img'
-        ;;
-    dump)
-        IMG_EXT='-root.dump'
-        ;;
-esac
 download_imagefile
 # workaround restore's non-unique /tmp/rstdir* & /tmp/rstmode*
-! test 'dump' = "$IMAGE_TYPE" || use_unique_tmpdir
-test 'no' = "$CDINSTALL" || exit 0
-losetup_blockdev
 test -f "$IMAGE_FILE" || die 'Can'\''t find image file "%s"\n' "$IMAGE_FILE"
+losetup_blockdev
 case "$IMAGE_TYPE" in
     tarball|dump)
+        ! test 'dump' = "$IMAGE_TYPE" || use_unique_tmpdir
         get_disk0_size_mbytes
         check_swap_size
         format_disk0
         ;;
     qemu)
-        "$QEMU_IMG" convert "$IMAGE_FILE" -O 'host_device' "$BLOCKDEV" >/dev/null
+        qcow_extract "$IMAGE_FILE"
         ;;
 esac
 # deploying something like a windows image, skip the rest
 ! test 'yes' = "$NOMOUNT" || exit 0
-if test -n "$RUN_PARTS" && test -d "$PRE_CUSTOMIZE_DIR"; then
-    export TARGET SUITE BLOCKDEV IMAGE_TYPE
-    "$RUN_PARTS" "$PRE_CUSTOMIZE_DIR"
-fi
 map_all
-case "$IMAGE_TYPE" in
-    tarball|dump)
-        mkfs_disk0
-        get_uuids
-        ;;
-esac
-mount_disk0 'temp'
+if test -n "$RUN_PARTS" && test -d "$PRE_CUSTOMIZE_DIR"; then
+    export TARGET SUITE IMAGE_TYPE filesystem_dev
+    env DISK_0_PATH="$BLOCKDEV" "$RUN_PARTS" "$PRE_CUSTOMIZE_DIR"
+fi
+if ! test 'qemu' = "$IMAGE_TYPE"; then
+    mkfs_disk0
+    get_uuids
+fi
+mkdir_disk0_temp
+mount_disk0
 case "$IMAGE_TYPE" in
     tarball)
-        tar pzxf "$IMAGE_FILE" -C "$TARGET"
+        tarball_extract "$IMAGE_FILE"
         ;;
     dump)
-        dump_extract
+        dump_extract "$IMAGE_FILE"
         ;;
 esac
-case "$IMAGE_TYPE" in
-    tarball|dump)
-        setup_fstab
-        ;;
-esac
+test 'qemu' = "$IMAGE_TYPE" || setup_fstab
 ! test 'True' = "$INSTANCE_HV_serial_console" || setup_console
 filesystem_relabel
 if test -n "$RUN_PARTS" && test -d "$CUSTOMIZE_DIR"; then
     ROOT_DEV="$root_dev"; BOOT_DEV="$boot_dev"; IMG_SSH_KEY_URL="$IMG_SSH_KEY_URL"
-    export TARGET SUITE BLOCKDEV ROOT_DEV BOOT_DEV IMAGE_TYPE IMG_SSH_KEY_URL
-    "$RUN_PARTS" "$CUSTOMIZE_DIR"
+    export TARGET SUITE ROOT_DEV BOOT_DEV IMAGE_TYPE IMG_SSH_KEY_URL
+    env DISK_0_PATH="$BLOCKDEV" "$RUN_PARTS" "$CUSTOMIZE_DIR"
 fi

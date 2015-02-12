@@ -58,9 +58,9 @@ _redhat_setup() {
     fi
 }
 
-_gentoo_setup() { verbprint 'no action needed for ddns\n'; }
+_gentoo_setup() { printerr 'no action needed for ddns\n'; }
 
-_suse_setup() { verbprint 'untested for suse\n'; }
+_suse_setup() { printerr 'untested for suse\n'; }
 
 get_os_type
 if test 0 -lt $NIC_COUNT; then

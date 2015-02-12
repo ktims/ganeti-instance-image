@@ -1,7 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2012 Oregon State University
-# Copyright (C) 2013, 2014, 2015 GRNET S.A.
+# Copyright (C) 2015 GRNET S.A.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,7 +29,8 @@ usage() {
     cat <<EOF
 Usage: $SCRIPT_NAME [OPTIONS] INSTANCE_NAME
 
-Mount the disks of an instance in a temp directory.
+Chroot to the instance root after setting up disks for an instance
+(then unset disks after).
 
 ARGS:
  INSTANCE_NAME  Name of the instance
@@ -78,6 +78,6 @@ losetup_blockdev
 map_all
 mkdir_disk0_temp
 mount_disk0 `test 0 -eq $READONLY || printf 'readonly'`
-verbprint '"%s" is now mounted at "%s"\n' "$INSTANCE_NAME" "$TARGET"
-cleanup uninit
+verbprint '"%s" is now setup at "%s" - chrooting (type "exit" when finished)\n' "$INSTANCE_NAME" "$TARGET"
+chroot "$TARGET" /bin/sh
 verbprint '"%s" finished\n' "$INSTANCE_NAME"

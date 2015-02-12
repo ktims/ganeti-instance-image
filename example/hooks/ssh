@@ -28,7 +28,7 @@ HOST_KEY='/etc/ssh/ssh_host_key'
 RSA_KEY='/etc/ssh/ssh_host_rsa_key'
 DSA_KEY='/etc/ssh/ssh_host_dsa_key'
 if test -e "${TARGET}/etc/debian_version"; then
-    verbprint 'Debian/Ubuntu: replace existing ssh keys\n'
+    printerr 'Debian/Ubuntu: replace existing ssh keys\n'
     rm -f "${TARGET}/$HOST_KEY" 2>/dev/null || :
     if ls "${TARGET}/$RSA_KEY"* >/dev/null 2>&1; then
         rm -f "${TARGET}/$RSA_KEY"*

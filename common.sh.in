@@ -49,7 +49,7 @@ printout() { printf "$@" | sed -e "s/^/${SCRIPT_NAME}: /"; }
 
 printerr() { printout "$@" >&2; }
 
-verbprint() { test 0 -eq $VERBOSE || printerr "$@"; }
+verbprint() { test -z "$VERBOSE" || test 0 -eq $VERBOSE || printerr "$@"; }
 
 die() { printerr "$@"; exit 1; }
 
@@ -102,44 +102,45 @@ $CLEANUP"
     esac
     case "$_cleanup_action" in
         init|pop|push|shift|unshift)
-            trap 'cleanup' EXIT || :
+            trap 'cleanup || :' EXIT || :
             ;;
     esac
     :
 }
 
-rmdir_disk0_temp() { # optional: 'dump|'
-    ! test 'dump' = "$1" || rm -rf "$DUMPDIR"
+mkdir_dumpdir_temp() {
+    DUMPDIR="`mktemp -d --tmpdir="${EXPORT_DIR:-${TMPDIR:-/tmp}}"`"
+    cleanup push "rmdir \"$DUMPDIR\""
+}
+
+rmdir_disk0_temp() {
     rmdir "$TARGET"
     TARGET="$OLD_TARGET"
     OLD_TARGET=''
     export TARGET
 }
 
-mkdir_disk0_temp() { # optional: 'dump|'
-    ! test 'dump' = "$1" || DUMPDIR="`mktemp -d --tmpdir="${EXPORT_DIR:-${TMPDIR:-/tmp}}"`"
+mkdir_disk0_temp() {
     OLD_TARGET="$TARGET"
     TARGET="`mktemp -d --tmpdir="${EXPORT_DIR:-${TMPDIR:-/tmp}}"`"
     export TARGET
-    cleanup push "rmdir_disk0_temp \"$1\""
+    cleanup push 'rmdir_disk0_temp'
 }
 
-unmount_disk0() { # optional: 'temp|' 'dump|'
+unmount_disk0() {
     sync
     test -z "$boot_dev" || umount "${TARGET}/boot"
     umount "${TARGET}/sys" 2>/dev/null || :
     umount "$TARGET"
-    ! test 'temp' = "$1" || rmdir_disk0_temp "$2"
 }
 
-mount_disk0() { # optional: 'temp|' 'dump|'
-    ! test 'temp' = "$1" || mkdir_disk0_temp "$2"
-    mount "$root_dev" "$TARGET"
+mount_disk0() { # optional: 'readonly'
+    mount `! test 'readonly' = "$1" || printf -- '-o ro'` "$root_dev" "$TARGET"
     if test -n "$boot_dev"; then
         $MKDIR_P "${TARGET}/boot"
-        mount "$boot_dev" "${TARGET}/boot"
+        mount `! test 'readonly' = "$1" || printf -- '-o ro'` "$boot_dev" "${TARGET}/boot"
     fi
-    cleanup push "unmount_disk0 \"$1\" \"$2\""
+    cleanup push "unmount_disk0"
 }
 
 unlosetup_blockdev() {
@@ -516,16 +517,60 @@ format_disk0_parted() {
     test -n "$KERNEL_PATH" || _parted_cmd "$_disk0" 'set' 1 'boot' 'on'
 }
 
+qcow_create() { "$QEMU_IMG" convert -O 'qcow2' -c "$BLOCKDEV" "$1" >/dev/null; }
+
+qcow_extract() { "$QEMU_IMG" convert -O 'host_device' "$1" "$BLOCKDEV" >/dev/null; }
+
+dump_create() {
+    _prefix="${1%root.dump}"
+    for _devname in 'boot' 'root'; do
+        eval "_dev=\"\${${_devname}_dev:-`printf '%s' "$_devname" | tr '[a-z]' '[A-Z]'`_DEV}\""
+        if test -z "$_dev"; then
+            test 'root' = "$_devname" || continue
+            die '%s_dev device doesn'\''t exist\n' "$_devname"
+        fi
+        _fs="`get_fs "$_dev"`"
+        case "$_fs" in
+            ext2|ext3|ext4)
+                "$DUMP" -0 -q -z9 -f "${_prefix}${_devname}.dump" "$_dev" >/dev/null
+                ;;
+            '')
+                die 'Unable to find filesystem type at "%s"\n' "$_dev"
+                ;;
+            *)
+                die '%s is not a supported filesystem. Please use ext{2,3,4}\n' "$_fs"
+                ;;
+        esac
+    done
+}
+
 dump_extract() {
-    _root_dump="${root_dump:-${IMAGE_FILE:-${DUMPDIR}/root.dump}}"
-    _boot_dump="${_root_dump%root.dump}boot.dump"
+    _prefix="${1$root.dump}"
     rm -rf "${TMPDIR:-/tmp}/rst"* # clean up any previous restore runs
-    test -f "$_root_dump" || die 'Can'\''t find image file "%s"\n' "$_root_dump"
-    ( cd "$TARGET" && restore -r -y -f "$_root_dump" >/dev/null )
+    test -f "${_prefix}root.dump" || die 'Can'\''t find image file "%s"\n' "${_prefix}root.dump"
+    ( cd "$TARGET" && restore -r -y -f "${_prefix}root.dump" >/dev/null )
     if test -n "$boot_dev"; then
-        test -f "$_boot_dump" || die 'Can'\''t find image file "%s"\n' "$_boot_dump"
-        ( cd "${TARGET}/boot" && restore -r -y -f "$_boot_dump" >/dev/null )
+        test -f "${_prefix}boot.dump" || die 'Can'\''t find image file "%s"\n' "${_prefix}boot.dump"
+        ( cd "${TARGET}/boot" && restore -r -y -f "${_prefix}boot.dump" >/dev/null )
     fi
+}
+
+tarball_create() {
+    # TODO: put pigz in autoconf as $PIGZ
+    if test -x /usr/bin/pigz; then
+        tar -I /usr/bin/pigz --numeric-owner -c -C "$TARGET" -f "$1" .
+    else
+        tar -z --numeric-owner -c -C "$TARGET" -f "$1" .
+    fi >/dev/null
+}
+
+tarball_extract() {
+    # TODO: put pigz in autoconf as $PIGZ
+    if test -x /usr/bin/pigz; then
+        tar -I /usr/bin/pigz --numeric-owner -x -p -C "$TARGET" -f "$1" .
+    else
+        tar -z --numeric-owner -x -p -C "$TARGET" -f "$1" .
+    fi >/dev/null
 }
 
 mkfs_disk0() {
@@ -628,7 +673,7 @@ setup_console() {
                     sed --follow-symlinks -i -e 's/.*T0.*/T0:23:respawn:\/sbin\/getty -L ttyS0 115200 vt100/' "${TARGET}/etc/inittab"
                     ;;
                 *)
-                    verbprint 'No support for your OS in instance-image, skipping...\n'
+                    printerr 'No support for your OS in instance-image, skipping...\n'
                     ;;
             esac
             ;;
@@ -645,13 +690,24 @@ filesystem_relabel() {
         fedora|centos|redhat)
             # we have to force a filesystem relabeling for SELinux after messing
             # around with the filesystem in fedora
-            verbprint 'Enforce an automatic relabeling in the initial boot process...\n'
+            printerr 'Enforce an automatic relabeling in the initial boot process...\n'
             touch "${TARGET}/.autorelabel"
             ;;
     esac
 }
 
 download_imagefile() {
+    case "$IMAGE_TYPE" in
+        tarball)
+            IMG_EXT='.tar.gz'
+            ;;
+        qemu)
+            IMG_EXT='.img'
+            ;;
+        dump)
+            IMG_EXT='-root.dump'
+            ;;
+    esac
     IMAGE_FILENAME="${IMAGE_NAME}-${ARCH}$IMG_EXT"
     IMAGE_FILE="${CACHE_DIR}/$IMAGE_FILENAME"
     if test -n "$IMAGE_URL"; then
@@ -704,6 +760,7 @@ check_os_variant() {
 source_os_variant() { ! test -f "$VARIANT_CONFIG" || . "$VARIANT_CONFIG"; }
 
 change_hostname() {
+    # TODO: systemd needs more changed ("machine-name", etc)
     case "$OS_TYPE" in
         debian)
             HNAME="${TARGET}/etc/hostname"
@@ -764,6 +821,7 @@ Instance has a different hostname "%s"\n' "$old_name" "$instance" "$OLD_HNAME"
 
 get_api10_parameters() {
     instance="$INSTANCE_NAME"
+    old_name="$OLD_INSTANCE_NAME"
     case "$SCRIPT_NAME" in
         export)
             BLOCKDEV="$EXPORT_DEVICE"
@@ -775,7 +833,6 @@ get_api10_parameters() {
             BLOCKDEV="$DISK_0_PATH"
             ;;
     esac
-    old_name="$OLD_INSTANCE_NAME"
 }
 
 get_api20_parameters() {

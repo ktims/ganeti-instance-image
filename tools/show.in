@@ -1,0 +1,132 @@
+#!/bin/sh
+
+# Copyright (C) 2015 GRNET S.A.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+set -e
+
+# presets
+MAP=0
+MOUNT=0
+READONLY=0
+INSTANCE_NAME=''
+SCRIPT_NAME="$(basename "$0")"
+
+# functions
+usage() {
+    cat <<EOF
+Usage: $SCRIPT_NAME [OPTIONS] INSTANCE_NAME
+
+Show disk/partitions/filesystems information (depending on flags).
+
+ARGS:
+ INSTANCE_NAME  Name of the instance
+
+OPTIONS:
+ -h             Help output
+ -m             Map partitions, show headers
+ -M             Mount partitions, show disk usage
+ -r             Mount readonly if mounting
+EOF
+}
+
+croak() { usage >&2; printf "$@" | sed -e "s/^/${SCRIPT_NAME}: /" >&2; exit 1; }
+
+# getopts
+while getopts ':hmMr' _opt; do
+    case "$_opt" in
+        h)
+            usage
+            exit 0
+            ;;
+        m)
+            MAP=1
+            ;;
+        M)
+            MOUNT=1
+            ;;
+        r)
+            READONLY=1
+            ;;
+        *)
+            croak 'Unknown option "-%s"\n' "$OPTARG"
+            ;;
+    esac
+done
+shift `expr $OPTIND - 1 || :`
+INSTANCE_NAME="$1"
+test 0 -eq $MOUNT || MAP=1
+
+# sanity checks
+test -n "$INSTANCE_NAME" || croak 'Error: INSTANCE_NAME not set\n'
+test -n "$DISK_0_PATH" || croak 'Error: DISK_0_PATH not set\n'
+test -n "$OS_VARIANT" || croak 'Error: OS_VARIANT not set\n'
+test -n "$HYPERVISOR" || croak 'Error: HYPERVISOR not set\n'
+test -n "$DISK_COUNT" || croak 'Error: DISK_COUNT not set\n'
+test -n "$OS_API_VERSION" || croak 'Error: OS_API_VERSION not set\n'
+
+# source functions
+. "@osdir@/@osname@/common.sh"
+debug set -x
+
+# main
+losetup_blockdev
+test 0 -eq $MAP && test 0 -eq $MOUNT || map_all
+if test 1 -eq $MOUNT; then
+    mkdir_disk0_temp
+    mount_disk0 `test 0 -eq $READONLY || printf 'readonly'`
+fi
+printf '\n'
+printf '==== Disk: %s ====\n\n' "$BLOCKDEV"
+fdisk -l "$BLOCKDEV" 2>&1
+printf '\n'
+if test 1 -eq $MAP || test 1 -eq $MOUNT; then
+        for _partition in "$boot_dev" "$root_dev"; do
+            if test -n "$_partition"; then
+                printf '==== Partition: %s ====\n\n' "$_partition"
+                printf '== FS headers ==\n\n'
+                case "`get_fs "$_partition"`" in
+                    ext2|ext3|ext4)
+                        dumpe2fs -h "$_partition" 2>&1
+                        ;;
+                    *)
+                        printf 'Unknown FS type\n'
+                       ;;
+                esac
+                printf '\n'
+                if test 1 -eq $MOUNT; then
+                    printf '== FS usage ==\n\n'
+                    case "`get_fs "$_partition"`" in
+                        ext2|ext3|ext4)
+                            df "$_partition" 2>&1
+                            ;;
+                        *)
+                            printf 'Unknown FS type\n'
+                            ;;
+                    esac
+                    printf '\n'
+                fi
+            fi
+        done
+        if test -n "$swap_dev"; then
+            printf '==== Partition: %s ====\n\n' "$swap_dev"
+            printf '== SWAP headers ==\n\n'
+            file -s "`readlink -e "$swap_dev"`" 2>&1
+            printf '\n'
+        fi
+fi
+verbprint '"%s" finished\n' "$INSTANCE_NAME"

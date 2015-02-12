@@ -59,4 +59,4 @@ if test -s "${TARGET}/etc/anacrontab"; then
     cleanup pop
     processed_one=1
 fi
-test 1 -eq $processed_one || verbprint 'No {ana,}crontab with any content was found or processed...\n'
+test 1 -eq $processed_one || printerr 'No {ana,}crontab with any content was found or processed...\n'
