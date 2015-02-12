@@ -26,6 +26,8 @@ debug set -x
 losetup_blockdev
 mkdir_disk0_temp 'dump'
 if ! test 'yes' = "$NOMOUNT"; then
+    get_disk0_size_mbytes
+    check_swap_size
     format_disk0
     map_all
     mkfs_disk0

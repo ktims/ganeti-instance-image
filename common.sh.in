@@ -178,6 +178,14 @@ map_disk0() {
 
 update_map_disk0() { sync; $KPARTX -u -p- "$BLOCKDEV"; }
 
+check_swap_size() {
+    if test 'yes' = "$SWAP"; then
+        test -n "$SWAP_SIZE" || die 'SWAP_SIZE not set however SWAP is enabled\n'
+        test $SWAP_SIZE -le $DISK_SIZE || \
+            die 'SWAP_SIZE larger than system disk size:\n  %sMB swap > %sMB system disk\n' "$SWAP_SIZE" "$DISK_SIZE"
+    fi
+}
+
 map_partition() {
     _partition="$1"
     _root_dev=''; _boot_dev=''; _swap_dev=''
@@ -232,8 +240,7 @@ get_uuids() {
 }
 
 disk_size() {
-    _disk_size_action="$1"
-    case "$_disk_size_action" in
+    case "$1" in
         get)
             "$BLOCKDEV_CMD" --getsz "$BLOCKDEV"
             ;;
@@ -248,6 +255,8 @@ disk_size() {
             ;;
     esac
 }
+
+get_disk0_size_mbytes() { DISK_SIZE="`expr \`disk_size get\` / 2048 || :`"; }
 
 part_table() {
     _part_table_action="$1"

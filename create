@@ -40,15 +40,11 @@ download_imagefile
 ! test 'dump' = "$IMAGE_TYPE" || use_unique_tmpdir
 test 'no' = "$CDINSTALL" || exit 0
 losetup_blockdev
-DISK_SIZE="$(expr `"$BLOCKDEV_CMD" --getsize64 "$BLOCKDEV"` / 1048576 || :)"
-if test 'yes' = "$SWAP"; then
-    test -n "$SWAP_SIZE" || die 'SWAP_SIZE not set however SWAP is enabled\n'
-    test $SWAP_SIZE -le $DISK_SIZE || \
-        die 'SWAP_SIZE larger than system disk size:\n  %sMB swap > %sMB system disk\n' "$SWAP_SIZE" "$DISK_SIZE"
-fi
 test -f "$IMAGE_FILE" || die 'Can'\''t find image file "%s"\n' "$IMAGE_FILE"
 case "$IMAGE_TYPE" in
     tarball|dump)
+        get_disk0_size_mbytes
+        check_swap_size
         format_disk0
         ;;
     qemu)
