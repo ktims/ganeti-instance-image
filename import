@@ -25,7 +25,11 @@ debug set -x
 
 losetup_blockdev
 mkdir_disk0_temp 'dump'
-if ! test 'yes' = "$NOMOUNT"; then
+( cd "$DUMPDIR" && tar -xf - ) # import dumps from tar file
+if test 'yes' = "$NOMOUNT"; then
+    "$QEMU_IMG" convert "${DUMPDIR}/disk.img" -O 'host_device' "$BLOCKDEV"
+else
+    use_unique_tmpdir
     get_disk0_size_mbytes
     check_swap_size
     format_disk0
@@ -33,14 +37,10 @@ if ! test 'yes' = "$NOMOUNT"; then
     mkfs_disk0
     get_uuids
     mount_disk0
-fi
-( cd "$DUMPDIR" && tar -xf - ) # import dumps from tar file
-if test 'yes' = "$NOMOUNT"; then
-    "$QEMU_IMG" convert "${DUMPDIR}/disk.img" -O 'host_device' "$BLOCKDEV"
-else
     dump_extract
     setup_fstab
     ! test 'True' = "$INSTANCE_HV_serial_console" || setup_console
+    filesystem_relabel
     rm -f "${TARGET}/etc/udev/rules.d/z"*"_persistent-net.rules"
     if test -x "${CUSTOMIZE_DIR}/grub"; then
         ROOT_DEV="$root_dev"; BOOT_DEV="$boot_dev"; IMPORT_SCRIPT=1
