@@ -517,9 +517,9 @@ format_disk0_parted() {
     test -n "$KERNEL_PATH" || _parted_cmd "$_disk0" 'set' 1 'boot' 'on'
 }
 
-qcow_create() { "$QEMU_IMG" convert -O 'qcow2' -c "$BLOCKDEV" "$1" >/dev/null; }
+qcow_create() { "$QEMU_IMG" convert -S 4k -O 'qcow2' -c "$BLOCKDEV" "$1" >/dev/null; }
 
-qcow_extract() { "$QEMU_IMG" convert -O 'host_device' "$1" "$BLOCKDEV" >/dev/null; }
+qcow_extract() { "$QEMU_IMG" convert -S 4k -O 'host_device' "$1" "$BLOCKDEV" >/dev/null; }
 
 dump_create() {
     _prefix="${1%root.dump}"
