@@ -29,20 +29,25 @@ RUN_PARTS="`which run-parts`"
 download_imagefile
 # workaround restore's non-unique /tmp/rstdir* & /tmp/rstmode*
 test -f "$IMAGE_FILE" || die 'Can'\''t find image file "%s"\n' "$IMAGE_FILE"
-losetup_blockdev
 case "$IMAGE_TYPE" in
     tarball|dump)
+        losetup_blockdev
         ! test 'dump' = "$IMAGE_TYPE" || use_unique_tmpdir
         get_disk0_size_mbytes
         check_swap_size
         format_disk0
         ;;
     qemu)
-        qcow_extract "$IMAGE_FILE"
+        if 'nomount' = "`printf '%s' "$IMAGE_NAME" | cut -d- -f1`" && ! test -b "$BLOCKDEV"; then
+            qcow_extract "$IMAGE_FILE" 'raw'
+        else
+            losetup_blockdev
+            qcow_extract "$IMAGE_FILE"
+        fi
+        # deploying something like a windows image, skip the rest
+        ! test 'yes' = "$NOMOUNT" || exit 0
         ;;
 esac
-# deploying something like a windows image, skip the rest
-! test 'yes' = "$NOMOUNT" || exit 0
 map_all
 if test -n "$RUN_PARTS" && test -d "$PRE_CUSTOMIZE_DIR"; then
     export TARGET SUITE IMAGE_TYPE filesystem_dev

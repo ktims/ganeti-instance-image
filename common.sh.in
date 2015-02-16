@@ -519,7 +519,17 @@ format_disk0_parted() {
 
 qcow_create() { "$QEMU_IMG" convert -S 4k -O 'qcow2' -c "$BLOCKDEV" "$1" >/dev/null; }
 
-qcow_extract() { "$QEMU_IMG" convert -S 4k -O 'host_device' "$1" "$BLOCKDEV" >/dev/null; }
+qcow_extract() {
+    case "$2" in
+        raw)
+            _dest="$2"
+            ;;
+        *)
+            _dest='host_device'
+            ;;
+    esac
+    "$QEMU_IMG" convert -S 4k -O "$_dest" "$1" "$BLOCKDEV" >/dev/null
+}
 
 dump_create() {
     _prefix="${1%root.dump}"

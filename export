@@ -25,11 +25,17 @@ debug set -x
 # TODO:
 # * use $EXPORT_INDEX
 
+mkdir_dumpdir_temp
 losetup_blockdev
 test -z "$EXP_SIZE_FD" || expr disk_size 'get' \* 512 >&$EXP_SIZE_FD
-mkdir_dumpdir_temp
 if test 'yes' = "$NOMOUNT"; then
-    qcow_create "${DUMPDIR}/disk.img"
+    if 'nomount' = "`printf '%s' "$IMAGE_NAME" | cut -d- -f1`" && ! test -b "$BLOCKDEV"; then
+        unlosetup_blockdev
+        cleanup pop
+        qcow_create "${DUMPDIR}/disk.img" 'raw'
+    else
+        qcow_create "${DUMPDIR}/disk.img"
+    fi
     cleanup push "rm -f \"${DUMPDIR}/disk.img\""
 else
     map_all

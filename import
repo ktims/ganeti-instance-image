@@ -25,16 +25,21 @@ debug set -x
 # TODO:
 # * use $IMPORT_INDEX
 
-losetup_blockdev
 mkdir_dumpdir_temp
 ( cd "$DUMPDIR" && tar -xf - ) # import dumps from tar on stdin
 if test 'yes' = "$NOMOUNT"; then
     cleanup push "rm -f \"${DUMPDIR}/disk.img\""
-    qcow_extract "${DUMPDIR}/disk.img"
+    if 'nomount' = "`printf '%s' "$IMAGE_NAME" | cut -d- -f1`" && ! test -b "$BLOCKDEV"; then
+        qcow_extract "${DUMPDIR}/disk.img" 'raw'
+    else
+        losetup_blockdev
+        qcow_extract "${DUMPDIR}/disk.img"
+    fi
 else
     cleanup push "rm -f \"${DUMPDIR}/root.dump\""
     cleanup push "rm -f \"${DUMPDIR}/boot.dump\" 2>/dev/null || :"
     use_unique_tmpdir
+    losetup_blockdev
     get_disk0_size_mbytes
     check_swap_size
     format_disk0

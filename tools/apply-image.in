@@ -101,8 +101,12 @@ esac
 debug set -x
 
 # main
-losetup_blockdev
-map_all
+case "$IMAGE_TYPE" in
+    tarball|dump)
+        losetup_blockdev
+        map_all
+        ;;
+esac
 case "$IMAGE_TYPE" in
     tarball)
         mkdir_disk0_temp
@@ -116,7 +120,12 @@ case "$IMAGE_TYPE" in
         ;;
     qemu)
         verbprint 'Extracting "%s" from qemu image at "%s/%s-%s.img"\n' "$INSTANCE_NAME" "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH"
-        qemu_extract "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.img"
+        if 'nomount' = "`printf '%s' "$IMAGE_NAME" | cut -d- -f1`" && ! test -b "$BLOCKDEV"; then
+            qcow_extract "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.img" 'raw'
+        else
+            losetup_blockdev
+            qcow_extract "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.img"
+        fi
         ;;
 esac
 verbprint '"%s" finished\n' "$INSTANCE_NAME"
