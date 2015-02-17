@@ -1,3 +1,86 @@
+ganeti-instance-image (0.6-1+grnet5) UNRELEASED; urgency=high
+
+  [ Rowan Thorpe ]
+  * Switch a forgotten old-style map_disk0 call
+  * Fix silly typo using wrong variable
+  * Remove stray "if" syntax error from earlier edit
+  * Fix leftover error from local-var-naming switch
+  * Fix logic error ('rm -f' always exits true)
+  * Make vol_type handling more robust,future-proof
+  * Fix voltype handling logic & better debug output
+  * Add root_passwd hook (add img_passwd param)
+  * Update README about ssh keys
+  * Standardise format_disk0 with other functions
+  * Refactor disk/swap size calculation
+  * Improve "import" script
+  * Add OS parameter to force $NOMOUNT=yes|no
+  * Update README
+  * Add comment in ChangeLog to see debian/changelog
+  * Minor tweak of test syntax in autogen.sh
+  * Update (grnet) and standardise copyright headers
+  * Fix silly mistake with verify/common.sh sourcing loop
+  * Rewrite of "tools"
+  * Use qemu-img -> raw for sharedfile,to keep sparse
+  * Fix typo (missing 'test') spotted by Alex Kiousis
+  * Fix missing "test" in other scripts too (copy-paste)
+
+ -- Rowan Thorpe <rowan@rowanthorpe.com>  Tue, 17 Feb 2015 11:22:35 +0200
+
+ganeti-instance-image (0.6-1+grnet4) UNRELEASED; urgency=high
+
+  [ Nikos Kokkalis ]
+  * ensure creation of /var/lib/*/random-seed on images
+
+  [ Rowan Thorpe ]
+  * Fix cron-randomize (transform vs overwrite,{ana,}cron)
+  * Add TODO with link to google API outline
+  * Fix order of preferred API versions
+  * Add comment about improving command-var usage
+  * Add useful lowlevel/debug functions
+  * More concise debug function
+  * Remove unused API version handling (temporarily?)
+  * Move/reformat functions (no real change tho)
+  * Make sourcing common.sh pwd explicit
+  * Fix mistyped string
+  * Remove now-unused $PARTPROBE assignment
+  * Syntax cleanups/fixes (no semantic changes) [BIG COMMIT]
+  * Replace log_error with specific debug functions
+  * Rewrite cleanup mechanism
+  * Improve Ganeti API handling
+  * Move losetup of blockdev into common.sh function
+  * Move disk/partition mapping into common.sh function
+  * Move partition/fs manipulation code into common.sh
+  * Avoid wget creating backup files
+  * Fix double-cleanup (manually, and exit hook)
+  * More whitespace and comments cleanup
+  * Compress when creating qemu image,tweak type names
+  * Rename filesystem_check -> filesystem_relabel
+  * Have deactivate disks exit-trap to handle failures
+  * Improve handling of ssh keys in hook
+  * Centralise and improve mkdir/mount/map disk/partitions
+  * Only act in dirs if successful did cd to them
+  * Move UUID handling into common.sh
+  * Improve systemd detection in common.sh
+  * Move variant conf into functions in common.sh
+  * Improvements to create script
+  * Improve parted format disk command
+  * Improve dump extraction code
+  * Improve change_hostname handling
+  * Add TODO comment to import
+  * Improve grub hook
+  * Add consoleblank=0 to grub hook
+  * Improve cron_randomize hook
+  * Improve random_seed hook
+  * Improve zz_dns hook
+  * Improve export script
+  * Improve ganeti-image (typos, robustify ssh)
+  * Rewrite user-scripts
+  * Rewrite interfaces hook
+  * Set shebangs to /bin/sh, there aren't bashisms now
+  * Small tidyups/reformatting/robustification
+
+ -- Rowan Thorpe <rowan@rowanthorpe.com>  Tue, 03 Feb 2015 13:04:31 +0200
+
 ganeti-instance-image (0.6-1+grnet3) UNRELEASED; urgency=high
 
   [ Alexandros Kiousis ]
