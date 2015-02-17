@@ -38,7 +38,7 @@ case "$IMAGE_TYPE" in
         format_disk0
         ;;
     qemu)
-        if 'nomount' = "`printf '%s' "$IMAGE_NAME" | cut -d- -f1`" && ! test -b "$BLOCKDEV"; then
+        if test 'nomount' = "`printf '%s' "$IMAGE_NAME" | cut -d- -f1`" && ! test -b "$BLOCKDEV"; then
             qcow_extract "$IMAGE_FILE" 'raw'
         else
             losetup_blockdev
