@@ -120,7 +120,7 @@ case "$IMAGE_TYPE" in
         ;;
     qemu)
         verbprint 'Extracting "%s" from qemu image at "%s/%s-%s.img"\n' "$INSTANCE_NAME" "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH"
-        if 'nomount' = "`printf '%s' "$IMAGE_NAME" | cut -d- -f1`" && ! test -b "$BLOCKDEV"; then
+        if test 'nomount' = "`printf '%s' "$IMAGE_NAME" | cut -d- -f1`" && ! test -b "$BLOCKDEV"; then
             qcow_extract "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.img" 'raw'
         else
             losetup_blockdev

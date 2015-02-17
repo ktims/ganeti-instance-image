@@ -113,7 +113,7 @@ case "$IMAGE_TYPE" in
         ;;
     qemu)
         verbprint 'Creating qemu image at "%s/%s-%s.img" from "%s"\n' "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH" "$INSTANCE_NAME"
-        if 'nomount' = "`printf '%s' "$IMAGE_NAME" | cut -d- -f1`" && ! test -b "$BLOCKDEV"; then
+        if test 'nomount' = "`printf '%s' "$IMAGE_NAME" | cut -d- -f1`" && ! test -b "$BLOCKDEV"; then
             qcow_create "${IMAGE_DIR}/{$IMAGE_NAME}-${ARCH}.img" 'raw'
         else
             losetup_blockdev

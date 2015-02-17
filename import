@@ -29,7 +29,7 @@ mkdir_dumpdir_temp
 ( cd "$DUMPDIR" && tar -xf - ) # import dumps from tar on stdin
 if test 'yes' = "$NOMOUNT"; then
     cleanup push "rm -f \"${DUMPDIR}/disk.img\""
-    if 'nomount' = "`printf '%s' "$IMAGE_NAME" | cut -d- -f1`" && ! test -b "$BLOCKDEV"; then
+    if test 'nomount' = "`printf '%s' "$IMAGE_NAME" | cut -d- -f1`" && ! test -b "$BLOCKDEV"; then
         qcow_extract "${DUMPDIR}/disk.img" 'raw'
     else
         losetup_blockdev
