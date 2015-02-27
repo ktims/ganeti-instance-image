@@ -92,5 +92,5 @@ if test 0 -ne $MOUNT; then
 fi
 verbprint '"%s" is now setup%s - dropping to shell (type "exit" when finished)\n' \
     "$INSTANCE_NAME" "`test -z "$TARGET" || printf 'at "%s"' "$TARGET"`"
-"$SHELL"
+"$SHELL" -i
 verbprint '"%s" finished\n' "$INSTANCE_NAME"

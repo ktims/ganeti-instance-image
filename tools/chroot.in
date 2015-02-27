@@ -79,5 +79,5 @@ map_all
 mkdir_disk0_temp
 mount_disk0 `test 0 -eq $READONLY || printf 'readonly'`
 verbprint '"%s" is now setup at "%s" - chrooting (type "exit" when finished)\n' "$INSTANCE_NAME" "$TARGET"
-chroot "$TARGET" /bin/sh
+chroot "$TARGET" /bin/sh -i
 verbprint '"%s" finished\n' "$INSTANCE_NAME"
