@@ -100,7 +100,7 @@ case "$1" in
         shift
         ;;
     -h|--help)
-        exec "$0" '' -h
+        exec "$0" noop -h
         ;;
     *)
         croak 'Subcommand "%s" not implemented\n' "$1"
