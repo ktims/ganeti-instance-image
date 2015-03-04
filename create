@@ -26,7 +26,7 @@ debug set -x
 
 test 'no' = "$CDINSTALL" || exit 0
 RUN_PARTS="`which run-parts`"
-download_imagefile
+get_imagefile
 # workaround restore's non-unique /tmp/rstdir* & /tmp/rstmode*
 test -f "$IMAGE_FILE" || die 'Can'\''t find image file "%s"\n' "$IMAGE_FILE"
 case "$IMAGE_TYPE" in

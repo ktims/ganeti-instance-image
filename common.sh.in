@@ -706,7 +706,7 @@ filesystem_relabel() {
     esac
 }
 
-download_imagefile() {
+get_imagefile() {
     case "$IMAGE_TYPE" in
         tarball)
             IMG_EXT='.tar.gz'
@@ -720,24 +720,36 @@ download_imagefile() {
     esac
     IMAGE_FILENAME="${IMAGE_NAME}-${ARCH}$IMG_EXT"
     IMAGE_FILE="${CACHE_DIR}/$IMAGE_FILENAME"
-    if test -n "$IMAGE_URL"; then
-        _pwd="$(pwd)"
-        cd "$CACHE_DIR"
-        if ! test -e "$IMAGE_FILE"; then
-            $WGET -O- "${IMAGE_URL}/$IMAGE_FILENAME" >"$IMAGE_FILENAME" 2>/dev/null || \
-                die 'Failed to find the image at "%s"\n' "$IMAGE_URL"
-            ! test 'yes' = "$IMG_CLEANUP" || cleanup push "rm -f \"$IMAGE_FILE\""
+    if ! test -s "$IMAGE_FILE"; then
+        if test -n "$IMAGE_URL"; then
+            $WGET -O- "${IMAGE_URL}/$IMAGE_FILENAME" >"$IMAGE_FILE" 2>/dev/null || {
+                rm -f "$IMAGE_FILE" >/dev/null 2>&1 || :
+                die 'Failed to download the image from "%s/%s"\n' "$IMAGE_URL" "$IMAGE_FILENAME"
+            }
+            if test 'yes' = "$IMG_VERIFY"; then
+                rm -f "${IMAGE_FILE}.sig" >/dev/null 2>&1 || :
+                $WGET -O- "${IMAGE_URL}/${IMAGE_FILENAME}.sig" >"${IMAGE_FILE}.sig" 2>/dev/null || {
+                    rm -f "${IMAGE_FILE}.sig" >/dev/null 2>&1 || :
+                    die 'Failed to download the checksum file from "%s/%s.sig"\n' "$IMAGE_URL" "$IMAGE_FILENAME"
+                }
+                ! test 'yes' = "$IMG_CLEANUP" || cleanup push "rm -f \"${IMAGE_FILE}.sig\""
+                _pwd="$(pwd)"
+                cd "$CACHE_DIR" || die 'Couldn'\''t enter cache directory "%s"\n' "$CACHE_DIR"
+                "$SHA1SUM" -c "${IMAGE_FILENAME}.sig" >/dev/null || \
+                    die 'Image "%s" doesn'\''t match checksum in "%s.sig"!\n' "$IMAGE_FILE" "$IMAGE_FILE"
+                cd "$_pwd"
+            fi
+        elif test -n "$IMAGE_DIR"; then
+            test -d "$IMAGE_DIR" || die 'Configured image-directory "%s" appears not to be a directory\n' "$IMAGE_DIR"
+            test -e "${IMAGE_DIR}/$IMAGE_FILENAME" || \
+                die 'The image "%s" is not in the image-directory "%s"\n' "$IMAGE_FILENAME" "$IMAGE_DIR"
+            cp -f "${IMAGE_DIR}/$IMAGE_FILENAME" "${CACHE_DIR}/$IMAGE_FILENAME" >/dev/null 2>&1 || \
+                die 'Failed to copy the image "%s" from the image-directory "%s"\n' "$IMAGE_FILENAME" "$IMAGE_DIR"
+        else
+            die 'Either $IMAGE_URL or $IMAGE_DIR must be defined in the defaults file.\n'
         fi
-        if test 'yes' = "$IMG_VERIFY"; then
-            rm -f "${IMAGE_FILENAME}.sig" >/dev/null 2>&1 || :
-            $WGET -O- "${IMAGE_URL}/${IMAGE_FILENAME}.sig" >"${IMAGE_FILENAME}.sig" 2>/dev/null || \
-                die 'Failed to find the checksum file at "%s"\n' "$IMAGE_URL"
-            ! test 'yes' = "$IMG_CLEANUP" || cleanup push "rm -f \"${IMAGE_FILE}.sig\""
-            "$SHA1SUM" -c "${IMAGE_FILENAME}.sig" >/dev/null || \
-                die 'Image doesn'\''t match checksum!\n'
-        fi
-        cd "$_pwd"
     fi
+    ! test 'yes' = "$IMG_CLEANUP" || cleanup push "rm -f \"$IMAGE_FILE\""
 }
 
 use_unique_tmpdir() {
