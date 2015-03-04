@@ -735,7 +735,7 @@ get_imagefile() {
                 ! test 'yes' = "$IMG_CLEANUP" || cleanup push "rm -f \"${IMAGE_FILE}.sig\""
                 _pwd="$(pwd)"
                 cd "$CACHE_DIR" || die 'Couldn'\''t enter cache directory "%s"\n' "$CACHE_DIR"
-                "$SHA1SUM" -c "${IMAGE_FILENAME}.sig" >/dev/null || \
+                "$SHA1SUM" --status --warn --check "${IMAGE_FILENAME}.sig" || \
                     die 'Image "%s" doesn'\''t match checksum in "%s.sig"!\n' "$IMAGE_FILE" "$IMAGE_FILE"
                 cd "$_pwd"
             fi
