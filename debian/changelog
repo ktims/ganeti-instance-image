@@ -1,3 +1,14 @@
+ganeti-instance-image (0.6-1+grnet6) UNRELEASED; urgency=high
+
+  [ Rowan Thorpe ]
+  * Fix small error -h processing in gnt-disk-tool
+  * Improve on previous -h fix in gnt-disk-tool
+  * Improve interactive shell use in tools/{shell,chroot}
+  * Get images from URL or DIR, based on defaults-file
+  * Improve sha1sum output
+
+ -- Zenon Mousmoulas <zmousm@noc.grnet.gr>  Thu, 05 Mar 2015 15:31:16 +0200
+
 ganeti-instance-image (0.6-1+grnet5) UNRELEASED; urgency=high
 
   [ Rowan Thorpe ]
