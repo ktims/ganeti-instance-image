@@ -87,6 +87,5 @@ case "$RESIZE" in
         part_size 'expand'
         ;;
 esac
-fi
 fs_size 'expand'
 verbprint '"%s" finished\n' "$INSTANCE_NAME"
