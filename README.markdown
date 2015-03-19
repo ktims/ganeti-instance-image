@@ -1,3 +1,7 @@
+### TODO
+
+A lot of the below is now out-of-date. It needs to be rewritten.
+
 # ganeti-instance-image
 
 This is a guest OS definition for [Ganeti](http://code.google.com/p/ganeti). It
