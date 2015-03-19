@@ -30,10 +30,10 @@ mkdir_dumpdir_temp
 if test 'yes' = "$NOMOUNT"; then
     cleanup push "rm -f \"${DUMPDIR}/disk.img\""
     if test 'nomount' = "`printf '%s' "$IMAGE_NAME" | cut -d- -f1`" && ! test -b "$BLOCKDEV"; then
-        qcow_extract "${DUMPDIR}/disk.img" 'raw'
+        qcow_extractfile "${DUMPDIR}/disk.img" 'raw'
     else
         losetup_blockdev
-        qcow_extract "${DUMPDIR}/disk.img"
+        qcow_extractfile "${DUMPDIR}/disk.img"
     fi
 else
     cleanup push "rm -f \"${DUMPDIR}/root.dump\""
@@ -47,7 +47,7 @@ else
     mkfs_disk0
     get_uuids
     mount_disk0
-    dump_extract "${DUMPDIR}/root.dump"
+    dump_extractfile "${DUMPDIR}/root.dump"
     setup_fstab
     ! test 'True' = "$INSTANCE_HV_serial_console" || setup_console
     filesystem_relabel

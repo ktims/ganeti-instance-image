@@ -519,7 +519,7 @@ format_disk0_parted() {
 
 qcow_create() { "$QEMU_IMG" convert -S 4k -O 'qcow2' -c "$BLOCKDEV" "$1" >/dev/null; }
 
-qcow_extract() {
+qcow_extractfile() {
     case "$2" in
         raw)
             _dest="$2"
@@ -530,6 +530,8 @@ qcow_extract() {
     esac
     "$QEMU_IMG" convert -S 4k -O "$_dest" "$1" "$BLOCKDEV" >/dev/null
 }
+
+qcow_extract() { qcow_extractfile "$IMAGE_FILE" "$@"; }
 
 dump_create() {
     _prefix="${1%root.dump}"
@@ -554,7 +556,7 @@ dump_create() {
     done
 }
 
-dump_extract() {
+dump_extractfile() {
     _prefix="${1$root.dump}"
     rm -rf "${TMPDIR:-/tmp}/rst"* # clean up any previous restore runs
     test -f "${_prefix}root.dump" || die 'Can'\''t find image file "%s"\n' "${_prefix}root.dump"
@@ -565,6 +567,8 @@ dump_extract() {
     fi
 }
 
+dump_extract() { dump_extractfile "$IMAGE_FILE" "$@"; }
+
 tarball_create() {
     # TODO: put pigz in autoconf as $PIGZ
     if test -x /usr/bin/pigz; then
@@ -574,7 +578,7 @@ tarball_create() {
     fi >/dev/null
 }
 
-tarball_extract() {
+tarball_extractfile() {
     # TODO: put pigz in autoconf as $PIGZ
     if test -x /usr/bin/pigz; then
         tar -I /usr/bin/pigz --numeric-owner -x -p -C "$TARGET" -f "$1" .
@@ -582,6 +586,8 @@ tarball_extract() {
         tar -z --numeric-owner -x -p -C "$TARGET" -f "$1" .
     fi >/dev/null
 }
+
+tarball_extract() { tarball_extractfile "$IMAGE_FILE" "$@"; }
 
 mkfs_disk0() {
     _mkfs="mkfs.$FILESYSTEM"

@@ -112,19 +112,19 @@ case "$IMAGE_TYPE" in
         mkdir_disk0_temp
         mount_disk0
         verbprint 'Extracting "%s" from tarball at "%s/%s-%s.tar.gz"\n' "$INSTANCE_NAME" "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH"
-        tarball_extract "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.tar.gz"
+        tarball_extractfile "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.tar.gz"
         ;;
     dump)
         verbprint 'Extracting "%s" from dump archive at "%s/%s-%s-{root,boot}.dump"\n' "$INSTANCE_NAME" "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH"
-        dump_extract "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}-root.dump"
+        dump_extractfile "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}-root.dump"
         ;;
     qemu)
         verbprint 'Extracting "%s" from qemu image at "%s/%s-%s.img"\n' "$INSTANCE_NAME" "$IMAGE_DIR" "$IMAGE_NAME" "$ARCH"
         if test 'nomount' = "`printf '%s' "$IMAGE_NAME" | cut -d- -f1`" && ! test -b "$BLOCKDEV"; then
-            qcow_extract "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.img" 'raw'
+            qcow_extractfile "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.img" 'raw'
         else
             losetup_blockdev
-            qcow_extract "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.img"
+            qcow_extractfile "${IMAGE_DIR}/${IMAGE_NAME}-${ARCH}.img"
         fi
         ;;
 esac

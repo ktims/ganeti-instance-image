@@ -39,10 +39,10 @@ case "$IMAGE_TYPE" in
         ;;
     qemu)
         if test 'nomount' = "`printf '%s' "$IMAGE_NAME" | cut -d- -f1`" && ! test -b "$BLOCKDEV"; then
-            qcow_extract "$IMAGE_FILE" 'raw'
+            qcow_extract 'raw'
         else
             losetup_blockdev
-            qcow_extract "$IMAGE_FILE"
+            qcow_extract
         fi
         # deploying something like a windows image, skip the rest
         ! test 'yes' = "$NOMOUNT" || exit 0
@@ -61,10 +61,10 @@ mkdir_disk0_temp
 mount_disk0
 case "$IMAGE_TYPE" in
     tarball)
-        tarball_extract "$IMAGE_FILE"
+        tarball_extract
         ;;
     dump)
-        dump_extract "$IMAGE_FILE"
+        dump_extract
         ;;
 esac
 test 'qemu' = "$IMAGE_TYPE" || setup_fstab
