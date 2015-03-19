@@ -724,36 +724,41 @@ get_imagefile() {
             IMG_EXT='-root.dump'
             ;;
     esac
-    IMAGE_FILENAME="${IMAGE_NAME}-${ARCH}$IMG_EXT"
-    IMAGE_FILE="${CACHE_DIR}/$IMAGE_FILENAME"
-    if ! test -s "$IMAGE_FILE"; then
-        if test -n "$IMAGE_URL"; then
-            $WGET -O- "${IMAGE_URL}/$IMAGE_FILENAME" >"$IMAGE_FILE" 2>/dev/null || {
-                rm -f "$IMAGE_FILE" >/dev/null 2>&1 || :
-                die 'Failed to download the image from "%s/%s"\n' "$IMAGE_URL" "$IMAGE_FILENAME"
-            }
-            if test 'yes' = "$IMG_VERIFY"; then
+    # Allow this to create the empty file (don't use mktemp -u), to avoid race condition (the
+    # empty file will be overwritten without problem anyway)
+    #TODO: add $MKTEMP to autoconf, rather than hardcoded mktemp (in other places too)
+    IMAGE_FILE="$(mktemp --tmpdir="$CACHE_DIR" "${IMAGE_NAME}-${ARCH}-XXXXXX$IMG_EXT")" || \
+        die 'Unable to create tempfile with template "%s" in the cache-dir "%s".\n' \
+            "${IMAGE_NAME}-${ARCH}-XXXXXX$IMG_EXT" "$CACHE_DIR"
+    #TODO: add $BASENAME to autoconf, rather than hardcoded basename (in other places too)
+    IMAGE_FILENAME="$(basename "$IMAGE_FILE")"
+    IMAGE_REMOTE_FILENAME="${IMAGE_NAME}-${ARCH}$IMG_EXT"
+    if test -n "$IMAGE_URL"; then
+        $WGET -O- "${IMAGE_URL}/$IMAGE_REMOTE_FILENAME" >"$IMAGE_FILE" 2>/dev/null || {
+            rm -f "$IMAGE_FILE" >/dev/null 2>&1 || :
+            die 'Failed to download the image from "%s/%s"\n' "$IMAGE_URL" "$IMAGE_REMOTE_FILENAME"
+        }
+        if test 'yes' = "$IMG_VERIFY"; then
+            rm -f "${IMAGE_FILE}.sig" >/dev/null 2>&1 || :
+            $WGET -O- "${IMAGE_URL}/${IMAGE_REMOTE_FILENAME}.sig" >"${IMAGE_FILE}.sig" 2>/dev/null || {
                 rm -f "${IMAGE_FILE}.sig" >/dev/null 2>&1 || :
-                $WGET -O- "${IMAGE_URL}/${IMAGE_FILENAME}.sig" >"${IMAGE_FILE}.sig" 2>/dev/null || {
-                    rm -f "${IMAGE_FILE}.sig" >/dev/null 2>&1 || :
-                    die 'Failed to download the checksum file from "%s/%s.sig"\n' "$IMAGE_URL" "$IMAGE_FILENAME"
-                }
-                ! test 'yes' = "$IMG_CLEANUP" || cleanup push "rm -f \"${IMAGE_FILE}.sig\""
-                _pwd="$(pwd)"
-                cd "$CACHE_DIR" || die 'Couldn'\''t enter cache directory "%s"\n' "$CACHE_DIR"
-                "$SHA1SUM" --status --warn --check "${IMAGE_FILENAME}.sig" || \
-                    die 'Image "%s" doesn'\''t match checksum in "%s.sig"!\n' "$IMAGE_FILE" "$IMAGE_FILE"
-                cd "$_pwd"
-            fi
-        elif test -n "$IMAGE_DIR"; then
-            test -d "$IMAGE_DIR" || die 'Configured image-directory "%s" appears not to be a directory\n' "$IMAGE_DIR"
-            test -e "${IMAGE_DIR}/$IMAGE_FILENAME" || \
-                die 'The image "%s" is not in the image-directory "%s"\n' "$IMAGE_FILENAME" "$IMAGE_DIR"
-            cp -f "${IMAGE_DIR}/$IMAGE_FILENAME" "${CACHE_DIR}/$IMAGE_FILENAME" >/dev/null 2>&1 || \
-                die 'Failed to copy the image "%s" from the image-directory "%s"\n' "$IMAGE_FILENAME" "$IMAGE_DIR"
-        else
-            die 'Either $IMAGE_URL or $IMAGE_DIR must be defined in the defaults file.\n'
+                die 'Failed to download the checksum file from "%s/%s.sig"\n' "$IMAGE_URL" "$IMAGE_REMOTE_FILENAME"
+            }
+            ! test 'yes' = "$IMG_CLEANUP" || cleanup push "rm -f \"${IMAGE_FILE}.sig\""
+            _pwd="$(pwd)"
+            cd "$CACHE_DIR" || die 'Couldn'\''t enter cache directory "%s"\n' "$CACHE_DIR"
+            "$SHA1SUM" --status --warn --check "${IMAGE_FILENAME}.sig" || \
+                die 'Image "%s" doesn'\''t match checksum in "%s.sig"!\n' "$IMAGE_FILE" "$IMAGE_FILE"
+            cd "$_pwd"
         fi
+    elif test -n "$IMAGE_DIR"; then
+        test -d "$IMAGE_DIR" || die 'Configured image-directory "%s" appears not to be a directory\n' "$IMAGE_DIR"
+        test -e "${IMAGE_DIR}/$IMAGE_FILENAME" || \
+            die 'The image "%s" is not in the image-directory "%s"\n' "$IMAGE_FILENAME" "$IMAGE_DIR"
+        cp -f "${IMAGE_DIR}/$IMAGE_REMOTE_FILENAME" "$IMAGE_FILE" >/dev/null 2>&1 || \
+            die 'Failed to copy the image "%s" from the image-directory "%s"\n' "$IMAGE_REMOTE_FILENAME" "$IMAGE_DIR"
+    else
+        die 'Either $IMAGE_URL or $IMAGE_DIR must be defined in the defaults file.\n'
     fi
     ! test 'yes' = "$IMG_CLEANUP" || cleanup push "rm -f \"$IMAGE_FILE\""
 }

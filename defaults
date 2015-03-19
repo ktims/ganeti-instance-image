@@ -87,5 +87,9 @@
 # IMG_VERIFY="yes"
 
 # IMG_CLEANUP: whether to remove the downloaded image after the installation
-# finishes. If set to no manual cleanup of images is needed.
+# finishes. If set to no manual cleanup of images is needed. As Ganeti
+# handles parallel instance-creations now, ganeti-instance-image gives
+# images in the cache-dir unique filenames per-instance, so it is *strongly*
+# advised to leave this set to yes (except when briefly troubleshooting, and
+# do manual cleanup afterwards) or disk-space will fill up fast.
 # IMG_CLEANUP="yes"
