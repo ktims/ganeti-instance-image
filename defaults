@@ -69,7 +69,7 @@
 # PRE_CUSTOMIZE_DIR="/etc/ganeti/instance-image/pre-hooks"
 
 # IMAGE_DEBUG: turn on debugging output for the scripts
-# IMAGE_DEBUG=0
+# IMAGE_DEBUG=1
 
 # IMAGE_URL: a remote (HTTP) location for the images.
 # A checksum (in SHA1 form) file with an appended .sig extention is required

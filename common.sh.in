@@ -908,7 +908,7 @@ fi
 : ${OVERLAYS_DIR:="@sysconfdir@/ganeti/instance-image/overlays"}
 : ${EXPORT_DIR:="${TMPDIR:-/tmp}"}
 : ${IMAGE_DIR:="@localstatedir@/cache/ganeti-instance-image"}
-: ${IMAGE_DEBUG:="no"}
+: ${IMAGE_DEBUG:="yes"}
 : ${FDISK:="sfdisk"}
 : ${CACHE_DIR:="@localstatedir@/cache/ganeti-instance-image"}
 : ${IMAGE_URL:=""}
