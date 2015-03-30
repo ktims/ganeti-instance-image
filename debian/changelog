@@ -1,3 +1,14 @@
+ganeti-instance-image (0.6-1+grnet8) UNRELEASED; urgency=low
+
+  [ Rowan Thorpe ]
+  * Improve encapsulation of xx_extract functions
+  * Add TODO note to README
+  * Set debug logging as default
+  * Use unique cache-imagefiles,advise IMG_CLEANUP=yes
+  * General defaults-file cleanup/tweaks
+
+ -- Rowan Thorpe <rowan@noc.grnet.gr>  Mon, 30 Mar 2015 18:44:00 +0200
+
 ganeti-instance-image (0.6-1+grnet7) UNRELEASED; urgency=low
 
   [ Rowan Thorpe ]
