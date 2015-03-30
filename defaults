@@ -2,88 +2,88 @@
 
 # CDINSTALL: Only setup disks for a cd based install
 # Just setup the disks so that you can boot a machine up on a cd to create a
-# new image
+# new image (default: no)
 # CDINSTALL="no"
 
-# SWAP: Create a swap partition
-# SWAP=yes
+# SWAP: Create a swap partition (default: yes)
+# SWAP="yes"
 
 # SWAP_SIZE: Manually set the size of the swap partition (in MB)
 # If left empty, it will set the size equal to the memory for the instance.
-# Make sure you have enough disk space for the swap partition!
+# Make sure you have enough disk space for the swap partition! (default: '')
 # SWAP_SIZE=""
 
 # BOOT_SIZE: Set the size of the /boot partition (in MB)
 # If left empty, it will use the default setting of 100MB as the size of the
-# /boot volume.
+# /boot volume (default: 100)
 # BOOT_SIZE=""
 
 # FILESYSTEM: Set which filesystem to format the disks as. Currently only
-# supports ext3 or ext4. Default is ext3.
+# supports ext3 or ext4 (default: ext3)
 # FILESYSTEM="ext3"
 
 # KERNEL_ARGS: Add additional kernel boot arguments to an instance. This only
-# works on instances booting a kernel from inside.
+# works on instances booting a kernel from inside (default: '')
 # KERNEL_ARGS=""
 
 # IMAGE_NAME: Name of the image to use
 # Generally you use the name of the image with the version of the OS included.
 # Examples include:
-#   centos-5.4 debian-4.0 fedora-12
+#   centos-5.4 debian-4.0 fedora-12 (default: '')
 # IMAGE_NAME=""
 
 # IMAGE_TYPE: Either qemu disk images, tarball, or dump based images.
-# Use either qemu, tarball, dump (default is dump)
+# Use either qemu, tarball, dump (default: dump)
 # IMAGE_TYPE="dump"
 
 # IMAGE_DIR: directory location for disk images
-# ( default is @localstatedir@/cache/ganeti-instance-image )
-# IMAGE_DIR=""
+# (default: @localstatedir@/cache/ganeti-instance-image)
+# IMAGE_DIR="/var/cache/ganeti-instance-image"
 
 # NOMOUNT: Do not try to mount volume (if it is not a linux partition). Accepts
 # either 'yes' or 'no'. This option is useful for installing Windows images for
-# example. ( default is no )
-# NOMOUNT=""
+# example (default: no)
+# NOMOUNT="no"
 
 # OVERLAY: overlay of files to be copied to the instance after OS installation.
 # This is useful for situations where you want to copy instance specific
-# configs such as resolv.conf.
+# configs such as resolv.conf (default: '')
 # OVERLAY=""
 
 # EXPORT_DIR: directory used when exporting an instance
-# (default is: /tmp)
-# EXPORT_DIR="/tmp"
+# (default: ${TMPDIR:-/tmp})
+# EXPORT_DIR="${TMPDIR:-/tmp}"
 
 # ARCH: Define the ARCH of the image to use
-# Use either x86 or x86_64
+# Use either x86 or x86_64 (default: '')
 # ARCH=""
 
 # CUSTOMIZE_DIR: a directory containing scripts to customize the installation.
 # The scripts are executed using run-parts
-# By default /etc/ganeti/instance-image/hooks
+# (default: @sysconfdir@/ganeti/instance-image/hooks)
 # CUSTOMIZE_DIR="/etc/ganeti/instance-image/hooks"
 
-# PRE_CUSTOMIZE_DIR: a directory containing hooks to customize the installation before mounting.
-# The scripts are executed using run-parts
-# By default /etc/ganeti/instance-image/pre-hooks
+# PRE_CUSTOMIZE_DIR: a directory containing hooks to customize the installation
+# before mounting. The scripts are executed using run-parts
+# (default: @sysconfdir@/ganeti/instance-image/pre-hooks)
 # PRE_CUSTOMIZE_DIR="/etc/ganeti/instance-image/pre-hooks"
 
-# IMAGE_DEBUG: turn on debugging output for the scripts
-# IMAGE_DEBUG=1
+# IMAGE_DEBUG: turn on debugging output for the scripts (default: yes)
+# IMAGE_DEBUG="yes"
 
 # IMAGE_URL: a remote (HTTP) location for the images.
 # A checksum (in SHA1 form) file with an appended .sig extention is required
-# to be present there for checking the image intergrity.
-# If not set, it falls back to  IMAGE_DIR.
+# to be present there for checking the image integrity. If not set, IMAGE_DIR
+# is used (default: '')
 # IMAGE_URL=""
 
 # CACHE_DIR: directory where the downloaded images will be saved
-# ( default is @localstatedir@/cache/ganeti-instance-image )
-# CACHE_DIR=""
+# (default: @localstatedir@/cache/ganeti-instance-image)
+# CACHE_DIR="/var/cache/ganeti-instance-image"
 
 # IMG_VERIFY: Check the image signature
 # if set to yes then a file <imagename>.sig must be on the IMAGE_URL
-# and contain the sha1sum value of the image
+# and contain the sha1sum value of the image (default: yes)
 # IMG_VERIFY="yes"
 
 # IMG_CLEANUP: whether to remove the downloaded image after the installation
@@ -91,5 +91,6 @@
 # handles parallel instance-creations now, ganeti-instance-image gives
 # images in the cache-dir unique filenames per-instance, so it is *strongly*
 # advised to leave this set to yes (except when briefly troubleshooting, and
-# do manual cleanup afterwards) or disk-space will fill up fast.
+# doing manual cleanup afterwards) or disk-space will fill up fast
+# (default: yes)
 # IMG_CLEANUP="yes"
