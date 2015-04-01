@@ -747,6 +747,8 @@ get_imagefile() {
             ! test 'yes' = "$IMG_CLEANUP" || cleanup push "rm -f \"${IMAGE_FILE}.sig\""
             _pwd="$(pwd)"
             cd "$CACHE_DIR" || die 'Couldn'\''t enter cache directory "%s"\n' "$CACHE_DIR"
+            sed -i -e "s:${IMAGE_REMOTE_FILENAME}\$:${IMAGE_FILENAME}:" "${IMAGE_FILENAME}.sig" || \
+                die 'Unable to update checksum file "%s.sig" with temporary filename.\n' "$IMAGE_FILE"
             "$SHA1SUM" --status --warn --check "${IMAGE_FILENAME}.sig" || \
                 die 'Image "%s" doesn'\''t match checksum in "%s.sig"!\n' "$IMAGE_FILE" "$IMAGE_FILE"
             cd "$_pwd"
