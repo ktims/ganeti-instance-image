@@ -18,14 +18,22 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-set -e
-. ./common.sh
-debug set -x
+exit 0
 
-! test 'yes' = "$NOMOUNT" || exit 0
-losetup_blockdev
-map_all
-mkdir_disk0_temp
-mount_disk0
-get_os_type
-change_hostname
+## The preexisting and expected behaviour is to do the below so that the VM's
+## sense of its hostname stays in sync across renames, but we (grnet NOC) deal
+## with this separately, and therefore need the provider to be a noop here, so
+## have commented this out. Most other users will want to uncomment this
+## though...
+
+#set -e
+#. ./common.sh
+#debug set -x
+#
+#! test 'yes' = "$NOMOUNT" || exit 0
+#losetup_blockdev
+#map_all
+#mkdir_disk0_temp
+#mount_disk0
+#get_os_type
+#change_hostname
