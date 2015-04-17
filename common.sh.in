@@ -557,7 +557,7 @@ dump_create() {
 }
 
 dump_extractfile() {
-    _prefix="${1$root.dump}"
+    _prefix="${1%root.dump}"
     rm -rf "${TMPDIR:-/tmp}/rst"* # clean up any previous restore runs
     test -f "${_prefix}root.dump" || die 'Can'\''t find image file "%s"\n' "${_prefix}root.dump"
     ( cd "$TARGET" && restore -r -y -f "${_prefix}root.dump" >/dev/null )
