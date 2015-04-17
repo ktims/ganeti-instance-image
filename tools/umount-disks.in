@@ -70,10 +70,10 @@ debug set -x
 
 # main
 filesystem_dev="${DISK_0_PATH#/dev}"
-TARGET="cat /proc/mounts | grep "$DISK_0_PATH" | awk '{ print $2 }'"
+TARGET="`cat /proc/mounts | grep "$DISK_0_PATH" | awk '{ print \$2 }'`"
 map_partition 'root'
 map_partition 'boot'
-umount_disk0
+unmount_disk0
 rmdir_disk0_temp
 BLOCKDEV="$DISK_0_PATH"
 unmap_disk0
