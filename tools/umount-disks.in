@@ -69,12 +69,11 @@ test -n "$OS_API_VERSION" || croak 'Error: OS_API_VERSION not set\n'
 debug set -x
 
 # main
-filesystem_dev="${DISK_0_PATH#/dev}"
-TARGET="`cat /proc/mounts | grep "$DISK_0_PATH" | awk '{ print \$2 }'`"
-map_partition 'root'
-map_partition 'boot'
+map_disk0_nocreate
+map_partitions
+TARGET="`grep -m 1 -- "^${root_dev}[ \\t]" /proc/mounts | awk '{ print $2 }'`"
 unmount_disk0
 rmdir_disk0_temp
 BLOCKDEV="$DISK_0_PATH"
-unmap_disk0
+unmap_all
 verbprint '"%s" finished\n' "$INSTANCE_NAME"
