@@ -78,6 +78,6 @@ losetup_blockdev
 map_all
 mkdir_disk0_temp
 mount_disk0 `test 0 -eq $READONLY || printf 'readonly'`
-verbprint '"%s" is now mounted at "%s"\n' "$INSTANCE_NAME" "$TARGET"
+verbprint '"%s" is now mounted at "%s" on "%s"\n' "$INSTANCE_NAME" "$TARGET" "`hostname -f`"
 cleanup uninit
 verbprint '"%s" finished\n' "$INSTANCE_NAME"
