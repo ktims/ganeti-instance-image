@@ -783,26 +783,6 @@ use_unique_tmpdir() {
     cleanup push "rm -fr \"$TMPDIR\"; TMPDIR=\"$OLD_TMPDIR\"; export TMPDIR"
 }
 
-check_os_variant() {
-    if test -n "$OS_VARIANT"; then
-        test -d "$VARIANTS_DIR" || die 'OS Variants directory "%s" doesn'\''t exist\n' "$VARIANTS_DIR"
-        if ! test -f "$VARIANT_CONFIG"; then
-            if grep -qxF "$OS_VARIANT" 'variants.list'; then
-                die 'ERROR: instance-image configuration error
-  Published variant "%s" is missing its config file
-  Please create "%s" or unpublish the variant
-  (by removing "%s" from variants.list)\n' \
-                    "$OS_VARIANT" "$VARIANT_CONFIG" "$OS_VARIANT"
-            else
-                die 'Unofficial variant "%s" is unsupported
-  Most probably this is a user error, forcing a wrong name
-  To support this variant please create file "%s" (and add
-  it to variants.list)\n' "$OS_VARIANT" "$VARIANT_CONFIG"
-            fi
-        fi
-    fi
-}
-
 source_os_variant() { ! test -f "$VARIANT_CONFIG" || . "$VARIANT_CONFIG"; }
 
 change_hostname() {
@@ -940,7 +920,49 @@ VOL_ID="\"$BLKID\" -c /dev/null -o 'value' -s 'UUID'"
 VOL_TYPE="\"$BLKID\" -c /dev/null -o 'value' -s 'TYPE'"
 VARIANT_CONFIG="${VARIANTS_DIR}/${OS_VARIANT}.conf"
 
+# NB: as ganeti handles passing more of these variables to "verify" script, move the
+#     below checks to there if appropriate
+
+check_os_variant() {
+    if test -n "$OS_VARIANT"; then
+        test -d "$VARIANTS_DIR" || die 'OS Variants directory "%s" doesn'\''t exist\n' "$VARIANTS_DIR"
+        if ! test -f "$VARIANT_CONFIG"; then
+            if grep -qxF "$OS_VARIANT" 'variants.list'; then
+                die 'ERROR: instance-image configuration error
+  Published variant "%s" is missing its config file
+  Please create "%s" or unpublish the variant
+  (by removing "%s" from variants.list)\n' \
+                    "$OS_VARIANT" "$VARIANT_CONFIG" "$OS_VARIANT"
+            else
+                die 'Unofficial variant "%s" is unsupported
+  Most probably this is a user error, forcing a wrong name
+  To support this variant please create file "%s" (and add
+  it to variants.list)\n' "$OS_VARIANT" "$VARIANT_CONFIG"
+            fi
+        fi
+    fi
+}
+
+check_sanity() {
+    test -n "$HYPERVISOR" && test -n "$DISK_COUNT" || \
+        die 'Missing OS API Variable:\n(HYPERVISOR or DISK_COUNT)\n'
+    test 1 -le $DISK_COUNT && test -n "$DISK_0_PATH" || die 'At least one disk is needed\n'
+    case "$SCRIPT_NAME" in
+        export)
+            test -n "$EXPORT_DEVICE" || die 'Missing OS API Variable EXPORT_DEVICE\n'
+            ;;
+        import)
+            test -n "$IMPORT_DEVICE" || die 'Missing OS API Variable IMPORT_DEVICE\n'
+            ;;
+        '')
+            die 'Missing OS API Variable SCRIPT_NAME\n'
+            ;;
+    esac
+    ! test 'rename' = "$SCRIPT_NAME" || test -n "$OLD_INSTANCE_NAME" || \
+        die 'Missing OS API Variable OLD_INSTANCE_NAME\n'
+    ! test 20 -eq $OS_API_VERSION || check_os_variant
+}
+
+check_sanity
 get_api_parameters
-# TODO: check_os_variant should go in "verify" when ganeti supports more than just parameters
-check_os_variant
 source_os_variant

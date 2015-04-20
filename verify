@@ -18,20 +18,13 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
+set -e
+
+die() { printerr "$@"; exit 1; }
+
 check_api10_parameters() {
-    test -n "$INSTANCE_NAME" && test -n "$HYPERVISOR" && test -n "$DISK_COUNT" || \
-        die 'Missing OS API Variable:\n(INSTANCE_NAME, HYPERVISOR or DISK_COUNT)\n'
-    test 1 -le $DISK_COUNT && test -n "$DISK_0_PATH" || die 'At least one disk is needed\n'
-    case "$SCRIPT_NAME" in
-        export)
-            test -n "$EXPORT_DEVICE" || die 'Missing OS API Variable EXPORT_DEVICE\n'
-            ;;
-        import)
-            test -n "$IMPORT_DEVICE" || die 'Missing OS API Variable IMPORT_DEVICE\n'
-            ;;
-    esac
-    ! test 'rename' = "$SCRIPT_NAME" || test -n "$OLD_INSTANCE_NAME" || \
-        die 'Missing OS API Variable OLD_INSTANCE_NAME\n'
+    test -n "$OSP_IMG_ID" || \
+        die 'Missing OS API Variable:\n(OSP_IMG_ID)\n'
 }
 
 check_api20_parameters() {
