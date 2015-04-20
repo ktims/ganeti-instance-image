@@ -1,3 +1,15 @@
+ganeti-instance-image (0.6-1+grnet11) UNRELEASED; urgency=low
+
+  [ Rowan Thorpe ]
+  * Fix small typo in dump_extractfile() in common.sh
+  * Fix two small typos in umount-disks.sh
+  * Fix map_disk0, unmount_disk0, mount-disks
+  * Fix "verify" use,with note about future-compat
+  * Improve gnt-disk-tool ssh invocation
+  * Improve output for mount-disks & umount-disks
+
+ -- Rowan Thorpe <rowan@noc.grnet.gr>  Mon, 20 Apr 2015 14:44:20 +0200
+
 ganeti-instance-image (0.6-1+grnet10) UNRELEASED; urgency=low
 
   [ Rowan Thorpe ]
