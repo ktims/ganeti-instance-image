@@ -318,6 +318,10 @@ fi
 if test "x$NODE" = "x$HOSTNAME"; then
     eval "$eval_string"
 else
-    ssh -o StrictHostKeyChecking=no "$NODE" "$eval_string"
+    ssh -q -n -t \
+        -o PasswordAuthentication=no \
+        -o UserKnownHostsFile=/dev/null \
+        -o StrictHostKeyChecking=no \
+        -- "$NODE" "$eval_string"
 fi
 test ! vm_is_running || trap - EXIT
