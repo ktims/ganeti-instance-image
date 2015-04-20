@@ -27,7 +27,15 @@ debug set -x
 
 mkdir_dumpdir_temp
 losetup_blockdev
-test -z "$EXP_SIZE_FD" || expr disk_size 'get' \* 512 >&$EXP_SIZE_FD
+case "$SHELL" in
+    *zsh|*bash)
+        :
+        ;;
+    *) # dash, ash, etc apparently can't handle FDs >=10
+        test -z "$EXP_SIZE_FD" || test "$EXP_SIZE_FD" -lt 10 || EXP_SIZE_FD=''
+        ;;
+esac
+test -z "$EXP_SIZE_FD" || expr `disk_size 'get'` \* 512 >&$EXP_SIZE_FD
 if test 'yes' = "$NOMOUNT"; then
     if test 'nomount' = "`printf '%s' "$IMAGE_NAME" | cut -d- -f1`" && ! test -b "$BLOCKDEV"; then
         unlosetup_blockdev

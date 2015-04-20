@@ -76,5 +76,5 @@ unmount_disk0
 rmdir_disk0_temp
 BLOCKDEV="$DISK_0_PATH"
 unmap_all
-verbprint '"%s" is now unmounted from "%s" on "%s"\n' "$INSTANCE_NAME" "$TARGET" "`hostname -f`"
+verbprint '"%s" is now unmounted from the tempdir on "%s"\n' "$INSTANCE_NAME" "`hostname -f`"
 verbprint '"%s" finished\n' "$INSTANCE_NAME"
