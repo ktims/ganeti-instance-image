@@ -158,7 +158,7 @@ losetup_blockdev() {
     OLD_BLOCKDEV=''
     if ! test -b "$BLOCKDEV"; then
         OLD_BLOCKDEV="$BLOCKDEV"
-        BLOCKDEV="$("$LOSETUP" -sf "$BLOCKDEV")"
+        BLOCKDEV="$("$LOSETUP" --show -f "$BLOCKDEV")"
         export BLOCKDEV
     fi
     cleanup push 'unlosetup_blockdev'
