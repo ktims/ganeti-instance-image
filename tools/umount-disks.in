@@ -70,6 +70,7 @@ debug set -x
 
 # main
 map_disk0_nocreate
+check_disk0
 map_partitions
 TARGET="`grep -m 1 -- "^${root_dev}[ \\t]" /proc/mounts | awk '{ print $2 }'`"
 unmount_disk0

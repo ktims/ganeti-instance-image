@@ -173,16 +173,20 @@ map_disk0_nocreate() {
             grep -m 1 -- "-1.*$BLOCKDEV" | \
             "$AWK" '{print $1}'
     `"
+    test -n "$_filesystem_dev1_base" || die 'Cannot interpret kpartx output and get partition mapping\n'
     filesystem_dev="/dev/mapper/${_filesystem_dev1_base%-1}"
+}
+
+check_disk0() {
+    test -b "${filesystem_dev}-1" || \
+        die 'Can'\''t find kpartx mapped partition: %s\n' "${filesystem_dev}-1"
 }
 
 map_disk0() {
     map_disk0_nocreate
-    test -n "$_filesystem_dev1_base" || die 'Cannot interpret kpartx output and get partition mapping\n'
     $KPARTX -a -p- "$BLOCKDEV" >/dev/null
     cleanup push 'unmap_disk0'
-    test -b "/dev/mapper/$_filesystem_dev1_base" || \
-        die 'Can'\''t find kpartx mapped partition: /dev/mapper/%s\n' "$_filesystem_dev1_base"
+    check_disk0
 }
 
 update_map_disk0() { sync; $KPARTX -u -p- "$BLOCKDEV"; }
