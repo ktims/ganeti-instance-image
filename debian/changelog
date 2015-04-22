@@ -1,3 +1,14 @@
+ganeti-instance-image (0.6-1+grnet13) UNRELEASED; urgency=low
+
+  [ Rowan Thorpe]
+  * Use printf so verify can die properly when it wants
+  * Use non-deprecated (--show) losetup optflag
+  * Improve map_disk0,add check_disk0,use in umount-disks.sh
+  * Tweak BLOCKDEV export
+  * Add losetup_find() for umount-disks to use
+
+ -- Rowan Thorpe <rowan@noc.grnet.gr>  Wed, 22 Apr 2015 20:46:06 +0200
+
 ganeti-instance-image (0.6-1+grnet12) UNRELEASED; urgency=low
 
   [ Rowan Thorpe]
