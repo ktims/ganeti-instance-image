@@ -20,7 +20,7 @@
 
 set -e
 
-die() { printerr "$@"; exit 1; }
+die() { printf "$@" >&2; exit 1; }
 
 check_api10_parameters() {
     test -n "$OSP_IMG_ID" || \
