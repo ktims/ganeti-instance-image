@@ -145,20 +145,38 @@ mount_disk0() { # optional: 'readonly'
     cleanup push "unmount_disk0"
 }
 
+losetup_find() {
+    OLD_BLOCKDEV=''
+    if ! test -b "$BLOCKDEV"; then
+        _new_blockdev="$("$LOSETUP" -j "$BLOCKDEV" | cut -d: -f1 || :)"
+        test -n "$_new_blockdev" && test -b "$_new_blockdev" || \
+            die 'Can'\''t find an associated loop device for "%s"\n' "$BLOCKDEV"
+        OLD_BLOCKDEV="$BLOCKDEV"
+        BLOCKDEV="$_new_blockdev"
+        export OLD_BLOCKDEV
+        export BLOCKDEV
+    fi
+}
+
 unlosetup_blockdev() {
     if test -n "$OLD_BLOCKDEV"; then
         "$LOSETUP" -d "$BLOCKDEV"
         BLOCKDEV="$OLD_BLOCKDEV"
-        export BLOCKDEV
         OLD_BLOCKDEV=''
+        export BLOCKDEV
+        export OLD_BLOCKDEV
     fi
 }
 
 losetup_blockdev() {
     OLD_BLOCKDEV=''
     if ! test -b "$BLOCKDEV"; then
+        _new_blockdev="$("$LOSETUP" --show -f "$BLOCKDEV")"
+        test -n "$_new_blockdev" && test -b "$_new_blockdev" || \
+            die 'Can'\''t create a loop device for "%s"\n' "$BLOCKDEV"
         OLD_BLOCKDEV="$BLOCKDEV"
-        BLOCKDEV="$("$LOSETUP" --show -f "$BLOCKDEV")"
+        BLOCKDEV="$_new_blockdev"
+        export OLD_BLOCKDEV
         export BLOCKDEV
     fi
     cleanup push 'unlosetup_blockdev'

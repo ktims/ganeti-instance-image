@@ -37,7 +37,7 @@ case "$SHELL" in
 esac
 test -z "$EXP_SIZE_FD" || expr `disk_size 'get'` \* 512 >&$EXP_SIZE_FD
 if test 'yes' = "$NOMOUNT"; then
-    if test 'nomount' = "`printf '%s' "$IMAGE_NAME" | cut -d- -f1`" && ! test -b "$BLOCKDEV"; then
+    if test 'nomount' = "`printf '%s' "$IMAGE_NAME" | cut -d- -f1`" && test -n "$OLD_BLOCKDEV"; then
         unlosetup_blockdev
         cleanup pop
         qcow_create "${DUMPDIR}/disk.img" 'raw'
