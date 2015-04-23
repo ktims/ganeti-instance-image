@@ -84,6 +84,9 @@ ACTIONS:
 
 This utility must be used on the master node. All optional args will have
 defaults if you do not set them.
+
+NB: the sub-commands *run on the instance's primary node* (so mounted disks
+will be on the node of course, which is not necessarily the master node).
 EOF
 }
 
