@@ -1,3 +1,11 @@
+ganeti-instance-image (0.6-1+grnet14) UNRELEASED; urgency=low
+
+  [ Rowan Thorpe]
+  * Revert unmount-$TARGET/sys workaround until proper fix is found
+  * Add disk-tool help-output: subcommands *run on node*
+
+ -- Rowan Thorpe <rowan@noc.grnet.gr>  Fri, 24 Apr 2015 14:06:06 +0200
+
 ganeti-instance-image (0.6-1+grnet13) UNRELEASED; urgency=low
 
   [ Rowan Thorpe]
