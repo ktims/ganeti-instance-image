@@ -4,7 +4,7 @@ Priority: extra
 Maintainer: Lance Albertson <lance@osuosl.org>
 Build-Depends: automake, autotools-dev, debhelper (>= 7), dump,
  e2fsprogs, gawk, kpartx, parted, qemu (>= 0.11) | qemu-kvm (>= 0.11),
- wget
+ qemu-utils, wget
 Standards-Version: 3.7.3
 Homepage: http://code.osuosl.org/projects/ganeti-image
 Vcs-Browser: http://git.osuosl.org/?p=ganeti-instance-image.git
@@ -13,7 +13,7 @@ Vcs-Git: git://git.osuosl.org/gitolite/ganeti/ganeti-instance-image.git
 Package: ganeti-instance-image
 Architecture: all
 Depends: ${misc:Depends}, dump, gawk, kpartx,
- qemu (>= 0.11) | qemu-kvm (>= 0.11), wget
+ qemu (>= 0.11) | qemu-kvm (>= 0.11), qemu-utils, wget
 Recommends: e2fsprogs, parted, python-passlib, pigz
 Conflicts: ganeti (<< 2.9.3)
 Enhances: ganeti
