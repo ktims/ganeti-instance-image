@@ -1,3 +1,10 @@
+ganeti-instance-image (0.6-1+grnet15) UNRELEASED; urgency=low
+
+  [ Rowan Thorpe]
+  * Include qemu-utils as a dep (qemu-img is used)
+
+ -- Rowan Thorpe <rowan@noc.grnet.gr>  Wed, 20 May 2015 12:57:36 +0200
+
 ganeti-instance-image (0.6-1+grnet14) UNRELEASED; urgency=low
 
   [ Rowan Thorpe]
