@@ -27,5 +27,6 @@ umask 077
 if test 'systemd' = "`get_service_manager`"; then
     dd if=/dev/urandom of="${TARGET}/var/lib/systemd/random-seed" bs=512 count=1 >/dev/null 2>&1
 else
+    mkdir -p "${TARGET}/var/lib/urandom" >/dev/null 2>&1
     dd if=/dev/urandom of="${TARGET}/var/lib/urandom/random-seed" bs=512 count=1 >/dev/null 2>&1
 fi

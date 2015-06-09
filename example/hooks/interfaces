@@ -52,7 +52,7 @@ EOF
     fi
 }
 
-_systemd_hostname_setup() {
+_systemd_machineid_setup() {
     printf 'CHASSIS="vm"\n' >"${TARGET}/etc/machine-info"
     cat /dev/null >"${TARGET}/etc/machine-id"
     mount --bind '/dev' "${TARGET}/dev" # to get temporary use of /dev/urandom
@@ -60,14 +60,14 @@ _systemd_hostname_setup() {
     chroot "$TARGET" 'systemd-machine-id-setup' >/dev/null 2>&1 # works as it writes direct to file
     umount "${TARGET}/dev"
     cleanup pop
-    printf '%s' "${FQDN:-$SHORT_NAME}" >"${TARGET}/etc/hostname"
     printf 'PRETTY_HOSTNAME="%s"\n' "${FQDN:-$SHORT_NAME}" >>"${TARGET}/etc/machine-info"
     printf 'HOSTNAME="%s"\n' "${FQDN:-$SHORT_NAME}" >>"${TARGET}/etc/sysconfig/network"
 }
 
+_systemd_hostname_setup() { _sysv_hostname_setup; }
+
 _systemd_network_setup() {
     if test 0 -ne $NIC_COUNT; then
-        test -f "${TARGET}/etc/sysconfig/network" || die 'Missing target network file\n'
         test -d "${TARGET}/etc/sysconfig/network-scripts" || die 'Missing target network-scripts directory\n'
         if test -z "$FQDN"; then
             printf 'NETWORKING="no"\n' >"${TARGET}/etc/sysconfig/network"
@@ -93,15 +93,16 @@ EOF
     fi
 }
 
-_debian_setup() {
-    if test 'systemd' = "`get_service_manager`"; then
-        _systemd_network_setup
-        _systemd_hostname_setup
-    else
-        test -d "${TARGET}/etc/network" || die 'Missing target network directory\n'
-        if test 0 -ne $NIC_COUNT; then
-            if test -z "$STATIC"; then
-                cat >"${TARGET}/etc/network/interfaces" <<EOF
+_sysv_hostname_setup() {
+    test -z "$FQDN$SHORT_NAME" || \
+        printf '%s\n' "${FQDN:-$SHORT_NAME}" >"${TARGET}/etc/hostname"
+}
+
+_sysv_network_setup() {
+    test -d "${TARGET}/etc/network" || die 'Missing target network directory\n'
+    if test 0 -ne $NIC_COUNT; then
+        if test -z "$STATIC"; then
+            cat >"${TARGET}/etc/network/interfaces" <<EOF
 # This file describes the network interfaces available on your system
 # and how to activate them. For more information, see interfaces(5).
 
@@ -112,8 +113,8 @@ auto eth0
 iface eth0 inet dhcp
 
 EOF
-            else
-                cat >"${TARGET}/etc/network/interfaces" <<EOF
+        else
+            cat >"${TARGET}/etc/network/interfaces" <<EOF
 # This file describes the network interfaces available on your system
 # and how to activate them. For more information, see interfaces(5).
 
@@ -126,9 +127,18 @@ iface eth0 inet static
     netmask $NETMASK
     gateway $GATEWAY
 EOF
-            fi
         fi
-        printf '%s\n' "${FQDN:-$SHORT_NAME}" >"${TARGET}/etc/hostname"
+    fi
+}
+
+_debian_setup() {
+    if test 'systemd' = "`get_service_manager`"; then
+        _systemd_network_setup
+        _systemd_machineid_setup
+        _systemd_hostname_setup
+    else
+        _sysv_network_setup
+        _sysv_hostname_setup
     fi
 }
 
@@ -156,9 +166,19 @@ EOF
     fi
 }
 
-_suse_setup() { _systemd_network_setup; _systemd_hostname_setup; }
+_suse_setup() {
+    _systemd_network_setup
+    _systemd_machineid_setup
+    _systemd_hostname_setup
+}
 
-_redhat_setup() { _systemd_network_setup; _systemd_hostname_setup; }
+_redhat_setup() {
+    # The "systemd" way is based on the "redhat" (non-standard) way anyway, so the only
+    # systemd step that pre-systemd redhat needs to skip is the machine-id one
+    _systemd_network_setup
+    ! test 'systemd' = "`get_service_manager`" || _systemd_machineid_setup
+    _systemd_hostname_setup
+}
 
 get_os_type
 if test -n "$OS_TYPE"; then
