@@ -1,3 +1,10 @@
+ganeti-instance-image (0.6-1+grnet16) UNRELEASED; urgency=low
+
+  [ Rowan Thorpe]
+  * Fix interfaces hook for CentOS < v7 (sysv)
+
+ -- Rowan Thorpe <rowan@noc.grnet.gr>  Tue, 09 June 2015 12:43:10 +0200
+
 ganeti-instance-image (0.6-1+grnet15) UNRELEASED; urgency=low
 
   [ Rowan Thorpe]
