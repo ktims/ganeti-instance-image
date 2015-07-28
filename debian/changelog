@@ -1,3 +1,12 @@
+ganeti-instance-image (0.6-1+grnet17) UNRELEASED; urgency=low
+
+  local package
+  [ Rowan Thorpe]
+  * Also replace ecdsa & ed25519 ssh keys
+  * Various cleanups to keep lintian happy
+
+ -- Rowan Thorpe <rowan@noc.grnet.gr>  Tue, 28 July 2015 20:59:09 +0200
+
 ganeti-instance-image (0.6-1+grnet16) UNRELEASED; urgency=low
 
   [ Rowan Thorpe]
