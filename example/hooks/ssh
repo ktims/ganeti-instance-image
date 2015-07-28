@@ -27,6 +27,8 @@ debug set -x
 HOST_KEY='/etc/ssh/ssh_host_key'
 RSA_KEY='/etc/ssh/ssh_host_rsa_key'
 DSA_KEY='/etc/ssh/ssh_host_dsa_key'
+ECDSA_KEY='/etc/ssh/ssh_host_ecdsa_key'
+ED25519_KEY='/etc/ssh/ssh_host_ed25519_key'
 if test -e "${TARGET}/etc/debian_version"; then
     printerr 'Debian/Ubuntu: replace existing ssh keys\n'
     rm -f "${TARGET}/$HOST_KEY" 2>/dev/null || :
@@ -38,8 +40,16 @@ if test -e "${TARGET}/etc/debian_version"; then
         rm -f "${TARGET}/$DSA_KEY"*
         ssh-keygen -t 'dsa' -q -N '' -f "${TARGET}/$DSA_KEY"
     fi
+    if ls "${TARGET}/$ECDSA_KEY"* >/dev/null 2>&1; then
+        rm -f "${TARGET}/$ECDSA_KEY"*
+        ssh-keygen -t 'ecdsa' -q -N '' -f "${TARGET}/$ECDSA_KEY"
+    fi
+    if ls "${TARGET}/$ED25519_KEY"* >/dev/null 2>&1; then
+        rm -f "${TARGET}/$ED25519_KEY"*
+        ssh-keygen -t 'ed25519' -q -N '' -f "${TARGET}/$ED25519_KEY"
+    fi
 else
-    for _key in "$HOST_KEY" "$RSA_KEY" "$DSA_KEY"; do
+    for _key in "$HOST_KEY" "$RSA_KEY" "$DSA_KEY" "$ECDSA_KEY" "$ED25519_KEY"; do
         ! ls "${TARGET}/$_key"* >/dev/null 2>&1 || rm -f "${TARGET}/$_key"*
     done
 fi
