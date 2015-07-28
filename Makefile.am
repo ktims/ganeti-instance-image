@@ -21,7 +21,7 @@ tools_SCRIPTS = tools/apply-image tools/chroot tools/expand \
 dist_custom_DATA = ${srcdir}/example/hooks/*
 dist_custom2_DATA = ${srcdir}/example/pre-hooks/*
 
-dist_doc_DATA = ${srcdir}/COPYING ${srcdir}/NEWS ${srcdir}/README.markdown
+dist_doc_DATA = ${srcdir}/COPYING ${srcdir}/README.markdown
 
 EXTRA_DIST = common.sh.in defaults tools/apply-image.in tools/chroot.in \
 	tools/expand.in tools/gnt-disk-tool.in tools/make-image.in \
