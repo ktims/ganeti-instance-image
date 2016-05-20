@@ -461,15 +461,15 @@ format_disk0() {
 }
 
 format_disk0_sfdisk() {
-    _sfdisk_cmd="\"$SFDISK\" -uM -H 255 -S 63 --quiet --Linux --DOS \"$1\""
+    _sfdisk_cmd="\"$SFDISK\" -uS --quiet --Linux \"$1\""
     if test 'yes' = "$SWAP" && test -z "$KERNEL_PATH"; then
         # Create three partitions:
         # 1 - $BOOT_SIZE /boot, bootable
         # 2 - Size of Memory, swap
         # 3 - Rest
         eval "$_sfdisk_cmd" >/dev/null <<EOF
-,${BOOT_SIZE},L,*
-,${SWAP_SIZE},S
+,$((2*BOOT_SIZE)),L,*
+,$((2*SWAP_SIZE)),S
 ,,L
 EOF
     elif test 'no' = "$SWAP" && test -z "$KERNEL_PATH"; then
@@ -477,7 +477,7 @@ EOF
         # 1 - $BOOT_SIZE /boot, bootable
         # 2 - Rest
         eval "$_sfdisk_cmd" >/dev/null <<EOF
-,${BOOT_SIZE},L,*
+,$(2*BOOT_SIZE)),L,*
 ,,L
 EOF
     elif test 'yes' = "$SWAP" && test -n "$KERNEL_PATH"; then
@@ -485,7 +485,7 @@ EOF
         # 1 - Size of Memory, swap
         # 2 - Rest
         eval "$_sfdisk_cmd" >/dev/null <<EOF
-,${SWAP_SIZE},S
+,$((2*SWAP_SIZE)),S
 ,,L,*
 EOF
     elif test 'no' = "$SWAP" && test -n "$KERNEL_PATH"; then
@@ -790,8 +790,8 @@ get_imagefile() {
         fi
     elif test -n "$IMAGE_DIR"; then
         test -d "$IMAGE_DIR" || die 'Configured image-directory "%s" appears not to be a directory\n' "$IMAGE_DIR"
-        test -e "${IMAGE_DIR}/$IMAGE_FILENAME" || \
-            die 'The image "%s" is not in the image-directory "%s"\n' "$IMAGE_FILENAME" "$IMAGE_DIR"
+        test -e "${IMAGE_DIR}/$IMAGE_REMOTE_FILENAME" || \
+            die 'The image "%s" is not in the image-directory "%s"\n' "$IMAGE_REMOTE_FILENAME" "$IMAGE_DIR"
         cp -f "${IMAGE_DIR}/$IMAGE_REMOTE_FILENAME" "$IMAGE_FILE" >/dev/null 2>&1 || \
             die 'Failed to copy the image "%s" from the image-directory "%s"\n' "$IMAGE_REMOTE_FILENAME" "$IMAGE_DIR"
     else
